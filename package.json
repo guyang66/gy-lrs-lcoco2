@@ -1,0 +1,80 @@
+{
+  "name": "gy-lsp-lcoco",
+  "version": "1.0.0",
+  "description": "简易版狼人杀",
+  "private": true,
+  "author": "goyoung",
+  "remark": "",
+  "scripts": {
+    "kill": "kill `lsof -t -i:6100`",
+    "clear": "rimraf ./logs/*",
+    "server": "cross-env NODE_ENV=development node app.js",
+    "prd": "cross-env NODE_ENV=production pm2 start app.js -n lrs",
+    "front": "react-app-rewired start",
+    "dev": "npm run server & npm run front",
+    "build": "rimraf ./dist & react-app-rewired build"
+  },
+  "dependencies": {
+    "antd": "4.16.0",
+    "axios": "^0.26.0",
+    "babel-plugin-import": "^1.13.0",
+    "chalk": "^4.1.2",
+    "classnames": "^2.3.1",
+    "cross-env": "^7.0.3",
+    "customize-cra": "^0.9.1",
+    "is-type-of": "^1.2.1",
+    "js-cookie": "^3.0.1",
+    "jsonwebtoken": "^8.5.1",
+    "koa": "^2.7.0",
+    "koa-body": "^4.1.1",
+    "koa-favicon": "^2.1.0",
+    "koa-json": "^2.0.2",
+    "koa-log4": "^2.3.2",
+    "koa-logger": "^3.2.0",
+    "koa-onerror": "^4.1.0",
+    "koa-router": "^7.4.0",
+    "koa-session": "^6.2.0",
+    "koa-static": "^5.0.0",
+    "koa-views": "^6.2.0",
+    "koa2-cors": "^2.0.6",
+    "less": "^3.11.1",
+    "less-loader": "^5.0.0",
+    "lodash": "^4.17.15",
+    "log4js": "^6.3.0",
+    "mongoose": "^5.7.5",
+    "node-cache": "^5.1.2",
+    "node-schedule": "^2.1.0",
+    "nodejs-websocket": "^1.7.2",
+    "nodemailer": "^6.5.0",
+    "react-app-rewire-hot-loader": "^2.0.1",
+    "react-app-rewired": "^2.1.5",
+    "react-document-title": "^2.0.3",
+    "react-dom": "^17.0.2",
+    "react-error-overlay": "6.0.9",
+    "react-hot-loader": "^4.12.21",
+    "react-router-dom": "^5.2.0",
+    "react-scripts": "4.0.3",
+    "react-websocket": "^2.1.0",
+    "stylus": "^0.54.7",
+    "stylus-loader": "^3.0.2",
+    "urlparse": "0.0.1",
+    "webpack": "4.44.2"
+  },
+  "devDependencies": {
+    "mobx-react": "^7.5.0",
+    "nodemon": "^1.19.1",
+    "rimraf": "^3.0.2"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

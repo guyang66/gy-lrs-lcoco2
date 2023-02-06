@@ -1,0 +1,161 @@
+.room-container
+  width 100%
+  height 100%
+  background-color #ffffff
+  position relative
+  .title-text
+    width 100%
+    font-size 16px
+    font-weight bold
+    text-align center
+  .full-btn
+    width 100%
+  .room-wrap
+    position relative
+    width 100%
+    height 100vh
+    overflow hidden
+    .btn-record
+      position fixed
+      bottom 80px
+      font-size 14px
+      font-weight bold
+      height 80px
+      width 80px
+      border-radius 40px
+      text-align center
+      line-height 80px
+      cursor pointer
+      left calc(50% + 150px)
+    .btn-refresh
+      position fixed
+      bottom 80px
+      font-size 14px
+      font-weight bold
+      height 80px
+      width 80px
+      border-radius 40px
+      text-align center
+      line-height 80px
+      cursor pointer
+      left 50%
+      transform translateX(-50%)
+    .btn-next-stage
+      position fixed
+      bottom 80px
+      font-size 14px
+      font-weight bold
+      height 80px
+      width 80px
+      border-radius 40px
+      text-align center
+      line-height 80px
+      cursor pointer
+      left calc(50% - 230px)
+.error-view
+  width 100%
+  .desc
+    font-size 16px
+    font-weight 500
+    text-align center
+.player-click-modal
+  .content-wrap
+    width 100%
+    .content-view
+      border-radius 4px
+      border 1px solid #eeeeee
+      overflow scroll
+      height 300px
+      position relative
+      margin-left 20px
+      margin-right 20px
+      padding 10px
+      flex-wrap wrap
+      flex-direction row
+      justify-content space-around
+      display flex
+      .player-cell
+        width 120px
+        height 70px
+        margin 10px
+        border-radius 2px
+        position relative
+        .camp-tag
+          height 20px
+          position absolute
+          border-radius 10px
+          right 4px
+          top 4px
+          padding-left 10px
+          padding-right 10px
+          line-height 20px
+          text-align center
+          font-weight 500
+          color #ffffff
+      .check-item
+        background-color #b8f1ed
+      .normal-item
+        border 1px solid #eeeeee
+      .target-item
+        background-color #d4237a
+      .txt
+        font-weight 500
+      .check-text
+        color #ffffff
+      .normal-text
+        color black
+    .result-view
+      .tit
+        font-size 14px
+        line-height 20px
+        font-weight 500
+        text-align center
+        width 100%
+      .content
+        width auto
+        font-size 14px
+    .prompt-view
+      font-size 14px
+      color orange
+      font-style italic
+      font-weight 500
+.role-card-wrap
+  .card-img
+    width 100%
+    height auto
+.ant-modal-confirm-content
+  margin-left 0!important
+
+.winner-wrap
+  width 100%
+  .img-card-wrap
+    position relative
+    img
+      width 80%
+      height auto
+    .winner-mask
+      position absolute
+      width 80%
+      height 100%
+      left 10%
+      top 0
+      background-color black
+      opacity 0.5
+    .winner-mask-text-wrap
+      position absolute
+      width 80%
+      height 100%
+      left 10%
+      top 0
+      img
+        width 64px
+        height 64px
+      .txt
+        text-align center
+        color #ffffff
+        font-weight bold
+        font-size 20px
+        line-height 100%
+
+.winner-title
+  font-size 18px
