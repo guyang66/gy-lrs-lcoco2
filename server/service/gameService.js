@@ -84,7 +84,7 @@ class gameService extends BaseClass{
    * @returns {Promise<{result}>}
    */
   async getSkillStatusInGame (id) {
-    const { service, ctx, app } = this
+    const { service, app } = this
     const { $helper, $model } = app
     const { game, player, action } = $model
     if(!id){
@@ -209,7 +209,7 @@ class gameService extends BaseClass{
    * @returns {Promise<{result}>}
    */
   async getBroadcastInfo(id) {
-    const { service, ctx, app } = this
+    const { service, app } = this
     const { $helper, $model, $constants } = app
     const { game, gameTag } = $model
     const { broadcastMap } = $constants
@@ -354,7 +354,7 @@ class gameService extends BaseClass{
 
 
   /**
-   * 获取每个玩家独有的系统提示
+   * 获取每个玩家独有的系统提示(小贴士)
    * @returns {Promise<{result}>}
    */
   async getSystemTips  (id) {
@@ -551,7 +551,7 @@ class gameService extends BaseClass{
    * @returns {Promise<{result}>}
    */
   async getActionStatusInGame (id) {
-    const { service, ctx, app } = this
+    const { service, app } = this
     const { $helper, $model } = app
     const { game, player, action, gameTag } = $model
     if(!id){
@@ -618,7 +618,7 @@ class gameService extends BaseClass{
   }
 
   /**
-   * 获取游戏是否结束 优先判断好人阵营死亡情况，在夜晚狼人先刀。
+   * 获取游戏是否结束 优先判断好人阵营死亡情况，在夜晚狼人先刀，所以好人和狼人都死完情况下，优先狼人团队胜利
    * @returns {Promise<{result}>}
    */
   async settleGameOver (id) {

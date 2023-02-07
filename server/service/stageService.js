@@ -382,14 +382,13 @@ class stageService extends BaseClass{
   }
 
   /**
-   * 进入发言环境
+   * 进入发言环节
    * @param id
    * @returns {Promise<{result}>}
    */
   async preSpeakStage (id) {
     const { service, app } = this
     const { $helper, $model, $support } = app
-
     const { game, player, record, gameTag } = $model
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)

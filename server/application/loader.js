@@ -1,11 +1,9 @@
-const path = require('path')
-const fs = require('fs')
 const Router = require('koa-router');
 const {errorLogger} = require('../../common/log4')
 //自动扫指定目录下面的文件并且加载
 const chalk = require('chalk');
 const MapLoader = require('../base/MapClass')
-const { scanFilesByFolder } = require('../utils')
+const { scanFilesByFolder, methodToMiddleware } = require('../utils')
 
 const initConfig = function () {
   let config = {};
@@ -23,20 +21,8 @@ const initErrorCode = function () {
 }
 
 const initController = function(app){
-  let dir = '../controller/'
-  let _folder = path.resolve(__dirname, dir);
-  const files = fs.readdirSync(_folder);
   let map = {}
-  files.forEach((file) => {
-    let fullPath = path.join(dir, file);
-    const stat = fs.statSync(path.join(__dirname, fullPath));
-    if(!stat.isDirectory() && !file.match(/js/)){
-      // 不是目录、也不是js文件，则跳过
-      return;
-    }
-    let filename = file.replace('.js', '');
-    let Controller = require(_folder + '/' + filename);
-
+  scanFilesByFolder('../controller/', function (filename, Controller){
     let proto = Controller.prototype
     let ret = {}
     const keys = Object.getOwnPropertyNames(proto);
@@ -46,18 +32,8 @@ const initController = function(app){
       }
       ret[key] = methodToMiddleware(Controller, key);
     }
-    proto = Object.getPrototypeOf(proto);
-    map[file.replace('.js', '')] = ret
+    map[filename] = ret
   })
-
-  function methodToMiddleware(Controller,key){
-    return function classControllerMiddleware(ctx, next){
-      const controller = new Controller(ctx)
-      let fn = controller[key]
-      // 通过call函数调用方法
-      return fn.call(controller, ctx, next)
-    }
-  }
 
   app['controller'] = map
 }
@@ -69,25 +45,14 @@ const initRouter = function(app){
   return router;
 }
 
-
 function initService(app){
-  let dir = '../service/'
-  let _folder = path.resolve(__dirname, dir);
-  const files = fs.readdirSync(_folder);
-  let map = {}
-  files.forEach((file) => {
-    let fullPath = path.join(dir, file);
-    const stat = fs.statSync(path.join(__dirname, fullPath));
-    if(!stat.isDirectory() && !file.match(/js/)){
-      // 不是目录、也不是js文件，则跳过
-      return;
-    }
-    map[file.replace('.js', '')] = require(path.join(_folder,file))
+  let serviceMap = {}
+  scanFilesByFolder('../service/',function (filename, Service){
+    serviceMap[filename] = Service
   })
-
   Object.defineProperty(app.context, 'service', {
     get() {
-      return new MapLoader({ctx: this, properties: map})
+      return new MapLoader({ctx: this, properties: serviceMap})
     }
   })
 }
@@ -199,7 +164,7 @@ const initWs = function (app) {
     connection.on("error", function (code, reason) {
       console.log(code,reason)
     })
-  }).listen(6103)
+  }).listen(app.$config.ws.port)
   return server
 }
 

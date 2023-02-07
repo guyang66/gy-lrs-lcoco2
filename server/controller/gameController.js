@@ -106,12 +106,12 @@ class gameController extends BaseClass {
           to: gameInstance['v' + randomPlayers[j].number],
           status: $support.getVisionKey(randomPlayers[i], randomPlayers[j])
         }
-        // 创建9 x 9 = 81个视野
+        // 创建9 x 9 = 81个视野，包含每个人对另外9个人的视野
         await service.baseService.save(vision, v)
       }
     }
 
-    // 生产一条游戏开始记录
+    // 生成一条游戏开始记录
     let gameStartRecord = {
       roomId: roomInstance._id,
       gameId: gameInstance._id,
@@ -125,7 +125,7 @@ class gameController extends BaseClass {
     }
     await service.baseService.save(record, gameStartRecord)
 
-    // 改变房间状态, 游戏进行中
+    // 改变房间状态, 使游戏进行中
     await service.baseService.updateById(room, roomInstance._id,{ status: 1, gameId: gameInstance._id})
 
     // 游戏第一阶段记录
@@ -232,7 +232,7 @@ class gameController extends BaseClass {
         status: currentPlayer.status,
         camp: currentPlayer.camp
       },
-      playerInfo: playerInfoResult.data,
+      playerInfo: playerInfoResult.data, // 其他玩家的信息
       skill: skillInfo.data,
       broadcast: broadcastInfo.data,
       systemTip: systemTipsInfo.data,
@@ -653,7 +653,6 @@ class gameController extends BaseClass {
 
   /**
    * 使用解药
-   * @param ctx
    * @returns {Promise<void>}
    */
   async antidotePlayer () {
@@ -834,6 +833,7 @@ class gameController extends BaseClass {
       ctx.body = $helper.Result.fail(-1,'未查询到你在该游戏中')
       return
     }
+    // 容错处理
     if(currentPlayer.status === 0){
       ctx.body = $helper.Result.fail(-1,'您已出局！，无法再使用该技能！')
       return
@@ -976,7 +976,6 @@ class gameController extends BaseClass {
 
   /**
    * 猎人开枪
-   * @param ctx
    * @returns {Promise<void>}
    */
   async shootPlayer () {
@@ -1159,7 +1158,6 @@ class gameController extends BaseClass {
 
   /**
    * 狼人自爆
-   * @param ctx
    * @returns {Promise<void>}
    */
   async boomPlayer () {
@@ -1324,7 +1322,6 @@ class gameController extends BaseClass {
 
   /**
    * 游戏结果
-   * @param ctx
    * @returns {Promise<void>}
    */
   async gameResult () {
@@ -1354,7 +1351,6 @@ class gameController extends BaseClass {
 
   /**
    * 结束游戏（流局）
-   * @param ctx
    * @returns {Promise<void>}
    */
   async gameDestroy () {
@@ -1419,7 +1415,6 @@ class gameController extends BaseClass {
 
   /**
    * 再来一局游戏
-   * @param ctx
    * @returns {Promise<void>}
    */
   async gameAgain () {
@@ -1480,7 +1475,6 @@ class gameController extends BaseClass {
       return
     }
 
-    // todo: 架构问题，导致上下文只能通过函数传值，非常不友好，可以参考eggjs架构，用class以及懒加载实现动态获取上下文。
     let currentUser = await service.baseService.userInfo()
     let currentPlayer = await service.baseService.queryOne(player, {roomId: roomInstance._id, gameId: roomInstance.gameId, username: currentUser.username})
     if(currentPlayer){

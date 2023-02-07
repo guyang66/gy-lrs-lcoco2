@@ -41,7 +41,17 @@ function scanFilesByFolder(dir, cb) {
   }
 }
 
+function methodToMiddleware(Controller,key){
+  return function classControllerMiddleware(ctx, next){
+    const controller = new Controller(ctx)
+    let fn = controller[key]
+    // 通过call函数调用方法，那么在函数执行之前可以插入一些逻辑，比如上下文的初始化
+    return fn.call(controller, ctx, next)
+  }
+}
+
 module.exports = {
   getFileStat,
-  scanFilesByFolder
+  scanFilesByFolder,
+  methodToMiddleware
 }

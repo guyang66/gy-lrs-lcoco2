@@ -73,7 +73,7 @@ class roomService extends BaseClass{
         name: userInfo.name,
         _id: userInfo._id,
         username: userInfo.username,
-        isSelf: currentUser.username === userInfo.username,
+        isSelf: currentUser.username === userInfo.username, // 是否是自己
       }
       if(userInfo){
         list.push({player: userInfo, position: i + 1, name: (i + 1) + '号'})
@@ -84,6 +84,12 @@ class roomService extends BaseClass{
     return $helper.wrapResult(true, list)
   }
 
+  /**
+   * 是否是观战者
+   * @param roomId
+   * @param username
+   * @returns {Promise<{result}>}
+   */
   async isOb (roomId, username) {
     const { service, app } = this
     const { $helper, $model } = app

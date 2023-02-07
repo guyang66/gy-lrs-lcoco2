@@ -2,7 +2,7 @@
   "port": "6100",
   "log": {
     "rootPath": "./logs",
-    "prdRootPath": "../logs/gy-lsp-lcoco",
+    "prdRootPath": "../logs/gy-lsp-lcoco2",
     "level": "on"
   },
   "mongodb": {
@@ -33,10 +33,13 @@
     "mode": "cron"
   },
   "crypto": {
-    "secret": "lrs"
+    "secret": "lrs2"
   },
   "jwt": {
     "resetWhenReload": true,
-    "secret": "lrs"
+    "secret": "lrs2"
+  },
+  "ws": {
+    "port": 6103
   }
 }

@@ -51,7 +51,7 @@ class authController extends BaseClass {
    * @returns {Promise<void>}
    */
   async logout () {
-    // 服务端是无状态的，登出由客户端处理即可
+    // jwt服务端是无状态的，登出由客户端处理即可
     const { ctx } = this
     ctx.body = 'ok'
   }

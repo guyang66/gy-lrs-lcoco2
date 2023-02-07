@@ -20,7 +20,7 @@ class roomController extends BaseClass {
       status: 0,
       password: password,
       owner: currentUser.username,
-      wait: [currentUser.username]
+      wait: [currentUser.username] // 创建房间后，房主自动加入等待区
     }
     let r = await service.baseService.save(room, obj)
     if(r){
@@ -51,9 +51,8 @@ class roomController extends BaseClass {
     let currentUser = await service.baseService.userInfo()
     let username = currentUser.username
 
-    let obResult = await service.roomService.isOb(roomInstance._id, currentUser.username)
-    let isOb = obResult.result && obResult.data === 'Y'
-
+    let isObResult = await service.roomService.isOb(roomInstance._id, currentUser.username)
+    let isOb = isObResult.result && isObResult.data === 'Y'
     let waitPlayer = roomInstance.wait
 
     // 判断当前用户是否已经入座
@@ -64,7 +63,7 @@ class roomController extends BaseClass {
         return p === username
       })
       if(!exist){
-        // 不在座位上，也不在等待区，可能是通过url直接访问的
+        // 不在座位上，也不在等待区，可能是通过url直接访问的，
         ctx.body = $helper.Result.fail(-1, '你不在该房间内，请先返回首页，重新加入房间！')
         return
       }
@@ -95,18 +94,18 @@ class roomController extends BaseClass {
       }
     })
 
-    let model = {
+    let gameInfo = {
       waitPlayer: waitPlayerArray,
       wait: roomInstance.wait,
       _id: roomInstance._id,
       name: roomInstance.name,
       password: roomInstance.password,
-      status: roomInstance.status,
+      status: roomInstance.status, // 游戏状态
       seat: seatInfo, // 座位信息
-      seatStatus: seatStatus, // 是否已做满,0:未坐满，1：已坐满（可开始游戏）
+      seatStatus: seatStatus, // 是否已做满  0：未坐满（不能开始游戏）1：已坐满（可开始游戏）
       gameId: roomInstance.gameId
     }
-    ctx.body = $helper.Result.success(model)
+    ctx.body = $helper.Result.success(gameInfo)
   }
 
   /**
@@ -123,6 +122,7 @@ class roomController extends BaseClass {
       ctx.body = $helper.Result.fail(-1,'房间密码不能为空！')
       return
     }
+    // 人少的话可以查询最近的一条带密码的记录即可，在线人多（小项目暂不考虑这个情况，并发不会高的），密码可能会重复，所以需要在大厅加入一个房间列表，以及定时器每天清理超时房间（因为服务器是无状态的，无法获知用户的上下线状态）
     let roomInstance = await service.baseService.queryOne(room,{password: key}, {} ,{sort: { createTime: -1 }})
     if(!roomInstance){
       ctx.body = $helper.Result.fail(-1,'房间不存在或密码不对！')
@@ -151,8 +151,8 @@ class roomController extends BaseClass {
 
     if(roomInstance.status === 1){
       // 正在游戏中
-      let string = roomInstance.status === 1 ? '已开始，请尝试进入观战模式！' : '已结束！'
-      ctx.body = $helper.Result.fail(-1,'游戏' + string)
+      let string = roomInstance.status === 1 ? '游戏已开始，请尝试进入观战模式！' : '游戏已结束！'
+      ctx.body = $helper.Result.fail(-1, string)
       return
     }
 
@@ -340,12 +340,13 @@ class roomController extends BaseClass {
       let exist = waitPlayer.find(p=>{
         return p === username
       })
+      // 未入座，但是等待区也没
       if(!exist){
         ctx.body = $helper.Result.fail(-1,'您不在等待区，请退出房间，重新加入该房间！')
         return
       }
     } else {
-      // 已经入座了，入座前需要退出座位
+      // 已经入座了，入座前需要退出座位（即换座位）
       const seatUpdate = (key) => {
         if(roomInstance[key] === username){
           // 需要被更新
