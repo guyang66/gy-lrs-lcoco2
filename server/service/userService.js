@@ -8,8 +8,7 @@ class userService extends BaseClass{
    * @returns {Promise<void>}
    */
   async getUsersByUsername(username){
-    const { $model } = this.app;
-    const { user } = $model
+    const { user } = this.app.$model
     if (username.length === 0) {
       return null;
     }
@@ -22,8 +21,7 @@ class userService extends BaseClass{
    * @returns {Promise<void>}
    */
   async getUsersPasswordByUsername(username) {
-    const { $model } = this.app;
-    const { user } = $model;
+    const { user } = this.app.$model;
     if (username.length === 0) {
       return null;
     }
@@ -37,8 +35,7 @@ class userService extends BaseClass{
    * @returns {Promise<*>}
    */
   async getUserInfoById(id) {
-    const { $model } = this.app;
-    const { user } = $model;
+    const { user } = this.app.$model;
     let r = await user.findById(id, {}, function (err){
       if(err){
         console.log(err)
@@ -54,7 +51,7 @@ class userService extends BaseClass{
    * @returns {Promise<*>}
    */
   async createUser (username, password) {
-    const { user } = app.$model
+    const { user } = this.app.$model
     await user.create(
       {
         username: username,

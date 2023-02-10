@@ -36,7 +36,7 @@ class roomController extends BaseClass {
    */
   async getRoomInfo () {
     const { service, ctx, app } = this
-    const { $helper, $model } = app
+    const { $helper, $model, $support } = app
     const { room, user } = $model
     const { id } = ctx.query
     if(!id || id === ''){
@@ -51,8 +51,7 @@ class roomController extends BaseClass {
     let currentUser = await service.baseService.userInfo()
     let username = currentUser.username
 
-    let isObResult = await service.roomService.isOb(roomInstance._id, currentUser.username)
-    let isOb = isObResult.result && isObResult.data === 'Y'
+    let isOb = $support.isOb(roomInstance, currentUser.username)
     let waitPlayer = roomInstance.wait
 
     // 判断当前用户是否已经入座
@@ -115,7 +114,6 @@ class roomController extends BaseClass {
   async joinRoom () {
     const { service, ctx, app } = this
     const { $helper, $model, $ws } = app
-
     const { room} = $model
     const { key } = ctx.query
     if(!key || key === ''){

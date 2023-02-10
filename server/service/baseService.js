@@ -206,6 +206,10 @@ class baseService extends BaseClass{
     }
   }
 
+  /**
+   * 根据上下文获取当前用户信息
+   * @returns {Promise<*>}
+   */
   async userInfo () {
     const { service, ctx, app } = this
     const { $helper } = app

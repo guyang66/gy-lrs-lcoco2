@@ -34,13 +34,13 @@ class gameController extends BaseClass {
       return
     }
     let seatInfo = r.data
-    let seatStatus = 1
+    let isFull = true // 座位是否坐满人
     seatInfo.forEach(item=>{
       if(!item.player){
-        seatStatus = 0 // 座位未坐满人
+        isFull = false
       }
     })
-    if(seatStatus === 0){
+    if(!isFull){
       ctx.body = $helper.Result.fail(-1,'座位未坐满，不满足游戏开始条件！')
       return
     }
@@ -156,8 +156,8 @@ class gameController extends BaseClass {
    */
   async getGameInfo () {
     const { service, ctx, app } = this
-    const { $helper, $model, $constants } = app
-    const { game, player } = $model
+    const { $helper, $model, $constants, $support } = app
+    const { game, player, room } = $model
     const { playerRoleMap, stageMap } = $constants
     const { id } = ctx.query
     if(!id || id === ''){
@@ -169,9 +169,9 @@ class gameController extends BaseClass {
       ctx.body = $helper.Result.fail(-1,'该游戏不存在！')
       return
     }
+    let roomInstance = await service.baseService.queryById(room, gameInstance.roomId)
     let currentUser = await service.baseService.userInfo()
-    let obResult = await service.roomService.isOb(gameInstance.roomId, currentUser.username)
-    let isOb = obResult.result && obResult.data === 'Y'
+    let isOb = $support.isOb(roomInstance, currentUser.username)
     // 查询你在游戏中的状态
     let currentPlayer = await service.baseService.queryOne(player, {roomId: gameInstance.roomId, gameId: gameInstance._id, username: currentUser.username})
     if(!isOb && !currentPlayer){
@@ -263,9 +263,8 @@ class gameController extends BaseClass {
     }
     let gameInstance = await service.baseService.queryById(game, gameId)
     let currentUser = await service.baseService.userInfo()
-
-    let obResult = await service.roomService.isOb(gameInstance.roomId, currentUser.username)
-    let isOb = obResult.result && obResult.data === 'Y'
+    let roomInstance = await service.baseService.queryById(gameInstance.roomId, id)
+    let isOb = $support.isOb(roomInstance, currentUser.username)
 
     let currentPlayer = await service.baseService.queryOne(player, {roomId: roomId, gameId: gameId, username: currentUser.username})
     if(!isOb && !currentPlayer){
@@ -336,7 +335,7 @@ class gameController extends BaseClass {
    */
   async commonGameRecord () {
     const { service, ctx, app } = this
-    const { $helper, $model} = app
+    const { $helper, $support, $model} = app
     const { game, record } = $model
     const { roomId, gameId } = ctx.query
     if(!roomId || roomId === ''){
@@ -353,9 +352,9 @@ class gameController extends BaseClass {
       return
     }
 
+    let roomInstance = await service.baseService.queryById(gameInstance.roomId, id)
     let currentUser = await service.baseService.userInfo()
-    let obResult = await service.roomService.isOb(gameInstance.roomId, currentUser.username)
-    let isOb = obResult.result && obResult.data === 'Y'
+    let isOb = $support.isOb(roomInstance, currentUser.username)
 
     let query = {roomId: roomId, gameId: gameId}
     if(gameInstance.status === 1 && !isOb){

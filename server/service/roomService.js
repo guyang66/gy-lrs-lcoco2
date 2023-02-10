@@ -8,7 +8,6 @@ class roomService extends BaseClass{
   async findInSeatPlayer (roomId, username = '') {
     const { service, app } = this
     const { $helper, $model } = app
-
     const { room } = $model
     if(!roomId){
       return $helper.wrapResult(false, '房间id不存在！', -1)
@@ -82,30 +81,6 @@ class roomService extends BaseClass{
       }
     }
     return $helper.wrapResult(true, list)
-  }
-
-  /**
-   * 是否是观战者
-   * @param roomId
-   * @param username
-   * @returns {Promise<{result}>}
-   */
-  async isOb (roomId, username) {
-    const { service, app } = this
-    const { $helper, $model } = app
-    const { room} = $model
-    if(!roomId || !username){
-      return $helper.wrapResult(true, 'N')
-    }
-    let roomInstance = await service.baseService.queryById(room, roomId)
-    if(!roomInstance){
-      return $helper.wrapResult(true, 'N')
-    }
-    let obList = roomInstance ? roomInstance.ob : []
-    if(obList.includes(username)){
-      return $helper.wrapResult(true, 'Y')
-    }
-    return $helper.wrapResult(true, 'N')
   }
 }
 module.exports = roomService;

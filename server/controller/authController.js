@@ -8,7 +8,6 @@ class authController extends BaseClass {
     const { service, app, ctx } = this
     const { $helper } = app
     const { username, password } = ctx.request.body
-
     if(!username || username === '') {
       ctx.body = $helper.Result.fail(-1, '用户名不能为空！')
       return

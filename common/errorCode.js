@@ -36,6 +36,7 @@ const errorCode = {
     feedback: '服务异常（查询失败）',
     description: '服务异常（查询失败）'
   },
+
   USER_NOT_EXIST_ERROR: {
     code: 4002,
     message: '用户不存在或者已被禁用',

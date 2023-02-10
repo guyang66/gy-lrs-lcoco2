@@ -6,8 +6,8 @@ class gameService extends BaseClass{
    * @returns {Promise<{result}>}
    */
   async getPlayerInfoInGame (id) {
-    const { service, ctx, app } = this
-    const { $helper, $model, $constants } = app
+    const { service, app } = this
+    const { $helper, $model, $constants, $support } = app
     const { game, player, user, vision, gameTag } = $model
     const { playerRoleMap } = $constants
     if(!id){
@@ -15,8 +15,8 @@ class gameService extends BaseClass{
     }
     let gameInstance = await service.baseService.queryById(game, id)
     let currentUser = await service.baseService.userInfo()
-    let obResult = await service.roomService.isOb(gameInstance.roomId, currentUser.username)
-    let isOb = obResult.result && obResult.data === 'Y'
+    let roomInstance = await service.baseService.queryById(gameInstance.roomId, id)
+    let isOb = $support.isOb(roomInstance, currentUser.username)
     let playerCount = gameInstance.playerCount || 9
     let playerInfo = []
 
@@ -85,16 +85,15 @@ class gameService extends BaseClass{
    */
   async getSkillStatusInGame (id) {
     const { service, app } = this
-    const { $helper, $model } = app
+    const { $helper, $support, $model } = app
     const { game, player, action } = $model
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)
     }
     let gameInstance = await service.baseService.queryById(game, id)
     let currentUser = await service.baseService.userInfo()
-
-    let obResult = await service.roomService.isOb(gameInstance.roomId, currentUser.username)
-    let isOb = obResult.result && obResult.data === 'Y'
+    let roomInstance = await service.baseService.queryById(gameInstance.roomId, id)
+    let isOb = $support.isOb(roomInstance, currentUser.username)
 
     let currentPlayer = await service.baseService.queryOne(player, {roomId: gameInstance.roomId, gameId: gameInstance._id, username: currentUser.username})
     if(isOb || !currentPlayer.skill || currentPlayer.skill.length < 1){
@@ -352,24 +351,21 @@ class gameService extends BaseClass{
     return $helper.wrapResult(true, [])
   }
 
-
   /**
    * 获取每个玩家独有的系统提示(小贴士)
    * @returns {Promise<{result}>}
    */
   async getSystemTips  (id) {
-    const { service, ctx, app } = this
+    const { service, app } = this
     const { $helper, $model, $support } = app
-
     const { game, player, action } = $model
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)
     }
     let gameInstance = await service.baseService.queryById(game, id)
     let currentUser = await service.baseService.userInfo()
-
-    let obResult = await service.roomService.isOb(gameInstance.roomId, currentUser.username)
-    let isOb = obResult.result && obResult.data === 'Y'
+    let roomInstance = await service.baseService.queryById(gameInstance.roomId, id)
+    let isOb = $support.isOb(roomInstance, currentUser.username)
     if(isOb){
       return $helper.wrapResult(true, [])
     }
@@ -552,16 +548,15 @@ class gameService extends BaseClass{
    */
   async getActionStatusInGame (id) {
     const { service, app } = this
-    const { $helper, $model } = app
+    const { $helper, $support, $model } = app
     const { game, player, action, gameTag } = $model
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)
     }
     let gameInstance = await service.baseService.queryById(game, id)
     let currentUser = await service.baseService.userInfo()
-
-    let obResult = await service.roomService.isOb(gameInstance.roomId, currentUser.username)
-    let isOb = obResult.result && obResult.data === 'Y'
+    let roomInstance = await service.baseService.queryById(gameInstance.roomId, id)
+    let isOb = $support.isOb(roomInstance, currentUser.username)
     if(isOb){
       return $helper.wrapResult(true, [])
     }

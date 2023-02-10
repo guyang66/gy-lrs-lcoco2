@@ -14,6 +14,7 @@ class stageService extends BaseClass{
       return $helper.wrapResult(false, 'gameId为空！', -1)
     }
     let gameInstance = await service.baseService.queryById(game, id)
+    // 查找当天晚上的查验action
     let checkAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: 1, action: 'check'})
     if(!checkAction) {
       // 空过
@@ -211,7 +212,7 @@ class stageService extends BaseClass{
     }
 
     // 结算女巫毒
-    // 注意：不能在女巫用毒后就注册玩家的死亡，会造成还在女巫回合，就能看到谁已经死亡了(这样就知道死亡的玩家是被毒死)，需要滞后
+    // 注意：不能在女巫用毒后就注册玩家的死亡，会造成还在女巫回合，就能看到谁已经死亡了(这样就知道死亡的玩家是被毒死，信息被泄露)，需要滞后到下一阶段
     let poisonAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: 3, action: 'poison'})
     if(poisonAction && poisonAction.to){
       let poisonPlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, username: poisonAction.to})
@@ -394,6 +395,7 @@ class stageService extends BaseClass{
       return $helper.wrapResult(false, 'gameId为空！', -1)
     }
     let gameInstance = await service.baseService.queryById(game, id)
+    // 从存活的玩家中随机抽取一位玩家座位第一位发言
     let alivePlayer = await service.baseService.query(player, {gameId: gameInstance._id, roomId: gameInstance.roomId, status: 1})
     let randomPosition = Math.floor(Math.random() * alivePlayer.length )
     let randomOrder = Math.floor(Math.random() * 2 ) + 1 // 随机发言顺序

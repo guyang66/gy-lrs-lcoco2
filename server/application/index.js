@@ -42,7 +42,6 @@ class Application extends Koa{
     // 挂载中间件实例
     this.$middleware = initMiddleware(this);
     console.log("========= middleware ==========")
-    // console.log(this.$middleware)
 
     // 初始化最开始需要被加载的中间件
     this.beforeAll(this)
@@ -59,7 +58,6 @@ class Application extends Koa{
     // 初始化mongodb model
     this.$model = initMongoModel(this);
     console.log("========= mongodb models ==========")
-    console.log(this.$model)
 
     // 初始化数据库
     initMongodb(this);
@@ -67,24 +65,21 @@ class Application extends Koa{
     // 初始化extend类
     initExtend(this)
     console.log("========= extends-helper ==========")
-    // console.log(this.$helper)
-    // 初始化service
+
+    // 初始化service(service在controller之前初始化)
     this.service = initService(this);
 
     console.log("========= service ==========")
-    // console.log(this.service)
 
     // 初始化controller
     initController(this);
 
     console.log("========= controllers ==========")
-    // console.log(this.$controller)
 
     // 初始化路router
     this.$router = initRouter(this);
 
     // 初始化websocket
-
     this.$ws = initWs(this)
 
     // timer表，每个game维护独自的定时器timer，互不影响
@@ -128,7 +123,6 @@ class Application extends Koa{
     const koaStatic = require('koa-static');
     const koaBody = require('koa-body');
     const cors = require('koa2-cors');
-    const views = require('koa-views');
 
     // 日志打点 最顶层中间件
     if(process.env.NODE_ENV === 'development'){
@@ -157,13 +151,6 @@ class Application extends Koa{
     // error处理
     onerror(this.$app)
 
-    // ejs模板引擎
-    this.$app.use(views(path.resolve(__dirname, '../views'), {
-      extension: 'ejs',
-      async: true
-    }))
-
-    // 公共数据
   }
 
   /**

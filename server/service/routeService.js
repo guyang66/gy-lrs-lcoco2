@@ -1,5 +1,4 @@
 const BaseClass = require('../base/BaseClass')
-let selectUserKey = { path: 1, roles: 1, _id: 0, key: 1, backUrl: 1, exact: 1, name: 1 };
 
 class routeService extends BaseClass{
   /**
@@ -10,7 +9,7 @@ class routeService extends BaseClass{
     const { route } = this.app.$model
     const { errorLogger } = this.app.$log4
     // 获取正在使用的路由
-    let r = await route.find( { status: 1}, selectUserKey, function (err){
+    let r = await route.find( { status: 1}, null, function (err){
       if(err){
         errorLogger.error(err)
       }

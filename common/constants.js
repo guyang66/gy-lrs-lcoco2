@@ -42,7 +42,14 @@ module.exports = {
         status: 0, // 猎人最开始不能开枪
       }
     ],
-    villager: []
+    villager: [],
+    guard: [
+      {
+        name: '守护',
+        key: 'defend',
+        status: 1,
+      }
+    ]
   },
   playerRoleMap: {
     wolf: {
@@ -65,6 +72,10 @@ module.exports = {
       name: '猎人',
       key: 'hunter'
     },
+    guard: {
+      name: '守卫',
+      key: 'guard'
+    }
   },
   stageMap: {
     0: {

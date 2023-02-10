@@ -47,5 +47,22 @@ module.exports = app => ({
       winner = gameInstance.winner === 1 ? '好人阵营' : '狼人阵营'
     }
     return  winner ? '胜利者为：' + winner : ''
+  },
+
+  /**
+   * 是否是观战者
+   * @param roomInstance
+   * @param username
+   * @returns {boolean}
+   */
+  isOb (roomInstance, username) {
+    if(!roomInstance || !username){
+      return false
+    }
+    let obList = roomInstance ? roomInstance.ob : []
+    if(!obList || obList.length < 1){
+      return false
+    }
+    return obList.includes(username)
   }
 })

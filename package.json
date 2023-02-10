@@ -6,7 +6,7 @@
   "author": "goyoung",
   "remark": "",
   "scripts": {
-    "kill": "kill `lsof -t -i:6101`",
+    "kill": "kill `lsof -t -i:6103`",
     "clear": "rimraf ./logs/*",
     "server": "cross-env NODE_ENV=development node app.js",
     "prd": "cross-env NODE_ENV=production pm2 start app.js -n lrs",
