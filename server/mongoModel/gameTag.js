@@ -13,10 +13,10 @@ module.exports = app => {
       position: { type: Number},
       dayStatus: { type: Number, required: [true,'gameTag-dayStatus不能为空！'] }, // 是晚上还是白天 1：晚上 2：白天
       desc: { type: String, required: [true,'gameTag-事件描述不能为空！']}, // 导致事件发生的原因, 如：desc = 'assault' , mode = 1 ,dayStatus = 1  可以得出：在晚上被狼人袭击而死
-      mode: { type: Number, required: [true,'gameTag-事件结果不能为空！']}, // 1 死亡  2、发言顺序
-      value: { type: String },
-      value2: { type: [] },
-      value3: { type: Object }
+      mode: { type: Number, required: [true,'gameTag-事件结果不能为空！']}, // 1 死亡  2、发言顺序 3、平票pk
+      value: { type: String }, // 不同类型的value值
+      value2: { type: [] }, // 不同类型的value值
+      value3: { type: Object } // 不同类型的value值
     }), {
       timestamps: { createdAt: 'createTime', updatedAt: 'modifyTime'},
       collection: "lcoco_game_tag",

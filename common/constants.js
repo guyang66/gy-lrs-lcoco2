@@ -7,6 +7,7 @@ module.exports = {
   gameModeMap: {
     'standard_9': ['wolf', 'wolf', 'wolf', 'villager', 'villager', 'villager', 'predictor', 'witch', 'hunter']
   },
+  gamePlayerCount: 9,
   predictor_timer: 30,
   wolf_timer: 40,
   witch_timer: 30,

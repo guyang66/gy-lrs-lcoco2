@@ -218,7 +218,7 @@ class stageService extends BaseClass{
       let poisonPlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, username: poisonAction.to})
       let witchPlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, username: poisonAction.from})
       // 注册玩家死亡
-      await service.baseService.updateById(player, poisonPlayer._id,{status: 0, outReason: 'poison'})
+      await service.baseService.updateById(player, poisonPlayer._id,{status: 0, outReason: $enums.GAME_OUT_REASON.POISON})
       let recordObject = {
         roomId: gameInstance.roomId,
         gameId: gameInstance._id,
@@ -674,7 +674,7 @@ class stageService extends BaseClass{
           position: votePlayer.position
         }
         await service.baseService.save(gameTag, tagObject)
-        await service.baseService.updateById(player, votePlayer._id,{status: 0, outReason: 'vote'})
+        await service.baseService.updateById(player, votePlayer._id,{status: 0, outReason: $enums.GAME_OUT_REASON.VOTE})
         if(votePlayer.role === 'hunter'){
           // 修改猎人的技能状态
           let skills = votePlayer.skill

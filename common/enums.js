@@ -10,7 +10,8 @@ module.exports = {
     EXCEPTION: 3, // 游戏异常
   },
   GAME_DAY: {
-    FIRST_DAY: 1,
+    FIRST_DAY: 1, // 游戏第一天
+    SECOND_DAY: 2, // 游戏第二天
   },
   GAME_TICKET_FLAT: {
     NO_PK: 1, // 平票不pk，直接进入下一阶段
@@ -45,6 +46,37 @@ module.exports = {
     UNKNOWN: 0, // 未知
     KNOWN_CAMP: 1, // 知晓阵营
     KNOWN_ROLE: 2, // 完全知晓（知晓角色）
+  },
+  GAME_ROLE: {
+    WOLF: 'wolf', // 狼人
+    PREDICTOR: 'predictor', // 预言家
+    WITCH: 'witch', // 女巫
+    HUNTER: 'hunter', // 猎人
+    VILLAGER: 'villager', // 村民
+    GUARD: 'guard',  // 守卫
+  },
+  GAME_TEMPLATE: {
+    STANDARD_6: 'standard_6', // 标准6人局
+    STANDARD_9: 'standard_9', // 标准9人局
+  },
+  GAME_OUT_REASON: {
+    SHOOT: 'shoot', // 被枪带走
+    EXILE: 'exile', // 被放逐
+    POISON: 'poison', // 被毒死
+    ASSAULT: 'assault', // 被狼人刀死
+    BOOM: 'boom', // 自爆自杀
+  },
+  SKILL_ACTION_KEY: {
+    BOOM: 'boom', // 狼人自爆
+    KILL: 'kill', // 狼人刀死
+    ASSAULT: 'assault', // 狼人袭击/刀
+    CHECK: 'check', // 预言家查验
+    ANTIDOTE: 'antidote', // 女巫解药
+    POISON: 'poison', // 女巫撒毒
+    SHOOT: 'shoot', // 猎人开枪
+    DEFEND: 'defend', // 守卫守护
+    VOTE: 'vote', // 投票
+    DIE: 'die', // 死亡/出局
   },
   SKILL_STATUS: {
     UNAVAILABLE: 0, // 不能使用

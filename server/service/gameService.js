@@ -99,105 +99,82 @@ class gameService extends BaseClass{
     if(isOb || !currentPlayer.skill || currentPlayer.skill.length < 1){
       return $helper.wrapResult(true, [])
     }
-    let skill = currentPlayer.skill
-    let tmp = []
+    let skillList = currentPlayer.skill
     // 查询一下当天有没有救人或者毒人，只要有2之一，女巫当晚不能再使用技能
     let checkAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: $enums.GAME_STAGE.PREDICTOR_STAGE, from: currentPlayer.username, action: 'check'})
     let assaultAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: $enums.GAME_STAGE.WOLF_STAGE, from: currentPlayer.username, action: 'assault'})
     let saveAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: $enums.GAME_STAGE.WITCH_STAGE, from: currentPlayer.username, action: 'antidote'})
     let poisonAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: $enums.GAME_STAGE.WITCH_STAGE, from: currentPlayer.username, action: 'poison'})
     let killAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, action: 'kill'})
-    skill.forEach(item=>{
-      if(item.key === 'boom'){
-        // 自爆只有在发言阶段可用，且存活状态才可以使用
-        tmp.push({
-          key: item.key,
-          name: item.name,
-          canUse: gameInstance.stage === $enums.GAME_STAGE.SPEAK_STAGE && currentPlayer.status === $enums.PLAYER_STATUS.ALIVE, // 是否可用
-          show: gameInstance.stage === $enums.GAME_STAGE.SPEAK_STAGE && currentPlayer.status === $enums.PLAYER_STATUS.ALIVE, // 是否显示
-        })
-      } else if (item.key === 'assault') {
-        // 袭击只有在夜晚狼人行动是可用，且存活状态，
-        let useStatus = gameInstance.stage === $enums.GAME_STAGE.WOLF_STAGE && currentPlayer.status === $enums.PLAYER_STATUS.ALIVE && item.status === $enums.SKILL_STATUS.AVAILABLE
-        if(assaultAction){
-          // 使用之后，不能再使用
-          useStatus = false
-        }
-        tmp.push({
-          key: item.key,
-          name: item.name,
-          canUse: useStatus, // 狼人袭击，夜晚、存活且可用
-          show: gameInstance.stage === $enums.GAME_STAGE.WOLF_STAGE && currentPlayer.status === $enums.PLAYER_STATUS.ALIVE && item.status === $enums.SKILL_STATUS.AVAILABLE, // (是否展示在前端)存活且轮到自己行动，所以预言家在狼人之前行动，避免刚好被刀（第一晚可报查验，之后用不用也无法开口了），导致当晚技能用不了
-        })
-      } else if (item.key === 'check') {
-        let useStatus = gameInstance.stage === $enums.GAME_STAGE.PREDICTOR_STAGE && currentPlayer.status === $enums.PLAYER_STATUS.ALIVE && item.status === $enums.SKILL_STATUS.AVAILABLE
-        if(checkAction){
-          useStatus = false
-        }
-        tmp.push({
-          key: item.key,
-          name: item.name,
-          canUse: useStatus , // 预言家查验，只要存活可一直使用
-          show: gameInstance.stage === $enums.GAME_STAGE.PREDICTOR_STAGE && currentPlayer.status === $enums.PLAYER_STATUS.ALIVE && item.status === $enums.SKILL_STATUS.AVAILABLE, // (是否展示在前端)存活且轮到自己行动，所以预言家在狼人之前行动，避免刚好被刀（第一晚可报查验，之后用不用也无法开口了），导致当晚技能用不了
-        })
-      } else if (item.key === 'antidote') {
-        let useStatus = gameInstance.stage === $enums.GAME_STAGE.WITCH_STAGE && currentPlayer.status === $enums.SKILL_STATUS.AVAILABLE && item.status === $enums.SKILL_STATUS.AVAILABLE
-        if(saveAction){
-          useStatus = false
-        }
-        if(poisonAction){
-          useStatus = false
-        }
-        if(gameInstance.witchSaveSelf === $enums.GAME_WITCH_SAVE_SELF.NO_SAVE_SELF){
-          useStatus = false
-        }
+    let isPlayerAlive = currentPlayer.status === $enums.PLAYER_STATUS.ALIVE
+    const getSkillUseStatus = (skill, targetStage, targetAction) => {
+      if(targetAction){
+        // 使用之后，不能再使用，得到下一轮才能使用
+        return  false
+      }
+      return gameInstance.stage === targetStage && currentPlayer.status === $enums.PLAYER_STATUS.ALIVE && skill.status === $enums.SKILL_STATUS.AVAILABLE
+    }
+    const getWitchAntidoteByGameSettings = () => {
+      // 不能自救且死的是自己，不能使用解药
+      if(gameInstance.witchSaveSelf ===  $enums.GAME_WITCH_SAVE_SELF.NO_SAVE_SELF && killAction.to === currentUser.username){
+        return false
+      }
+      // 仅首页能自救
+      if(gameInstance.witchSaveSelf === $enums.GAME_WITCH_SAVE_SELF.SAVE_ONLY_FIRST_NIGHT && killAction.to === currentUser.username){
+        return gameInstance.day === 1
+      }
+      return true
+    }
+    const computeHunterSkill = (skill,stage) => {
+      if(skill.status === $enums.SKILL_STATUS.UNAVAILABLE){
+        return false
+      }
+      if(stage === $enums.GAME_STAGE.AFTER_NIGHT && currentPlayer.status === $enums.PLAYER_STATUS.DEAD){
+        // 经过了晚上的洗礼，如果死亡
+        return currentPlayer.outReason !== $enums.GAME_OUT_REASON.POISON
+      }
+      return stage === $enums.PLAYER_STATUS.EXILE_FINISH_STAGE && currentPlayer.status === $enums.PLAYER_STATUS.ALIVE;
+    }
 
-        if(gameInstance.witchSaveSelf === $enums.GAME_WITCH_SAVE_SELF.SAVE_ONLY_FIRST_NIGHT && killAction && gameInstance.day !== 1){
-          // 首页之后不能自救
-          if(currentPlayer.username === killAction.to){
-            useStatus = false
-          }
-        }
-        if(!killAction){
-          useStatus = false
-        }
-        tmp.push({
-          key: item.key,
-          name: item.name,
-          canUse: useStatus,
-          show: gameInstance.stage === $enums.GAME_STAGE.WITCH_STAGE && currentPlayer.status === $enums.PLAYER_STATUS.ALIVE, // (是否展示在前端)存活且轮到自己行动
-        })
-      } else if (item.key === 'poison') {
-        let useStatus = gameInstance.stage === $enums.GAME_STAGE.WITCH_STAGE && currentPlayer.status === $enums.PLAYER_STATUS.ALIVE && item.status === $enums.SKILL_STATUS.AVAILABLE
-        if(saveAction){
-          useStatus = false
-        }
-        if(poisonAction){
-          useStatus = false
-        }
-        tmp.push({
-          key: item.key,
-          name: item.name,
-          canUse: useStatus,
-          show: gameInstance.stage === $enums.GAME_STAGE.WITCH_STAGE && currentPlayer.status === $enums.PLAYER_STATUS.ALIVE, // (是否展示在前端)存活且轮到自己行动
-        })
-      } else if (item.key === 'shoot') {
-        const computeHunterSkill = (stage) => {
-          if(item.status === $enums.SKILL_STATUS.UNAVAILABLE){
-            return false
-          }
-          if(stage === $enums.GAME_STAGE.AFTER_NIGHT && currentPlayer.status === $enums.PLAYER_STATUS.DEAD){
-            // 经过了晚上的洗礼，如果死亡
-            return currentPlayer.outReason !== 'poison'
-          }
-          return stage === $enums.PLAYER_STATUS.EXILE_FINISH_STAGE && currentPlayer.status === $enums.PLAYER_STATUS.ALIVE;
-        }
-        tmp.push({
-          key: item.key,
-          name: item.name,
-          canUse: computeHunterSkill(gameInstance.stage), // 猎人晚上不死于毒药可开枪, 被投出去可开枪
-          show: (gameInstance.stage === $enums.GAME_STAGE.AFTER_NIGHT || gameInstance.stage === $enums.PLAYER_STATUS.EXILE_FINISH_STAGE) && item.status === $enums.SKILL_STATUS.AVAILABLE, // 是否展示在前端
-        })
+    let tmp = []
+    skillList.forEach(skill=>{
+      let isSkillAvailable = skill.status === $enums.SKILL_STATUS.AVAILABLE
+      let skillMap = {
+        key: skill.key,
+        name: skill.name,
+      }
+      switch (skill.key) {
+        case $enums.SKILL_ACTION_KEY.BOOM:
+          skillMap.canUse = gameInstance.stage === $enums.GAME_STAGE.SPEAK_STAGE && isPlayerAlive // 是否可用
+          skillMap.show = gameInstance.stage === $enums.GAME_STAGE.SPEAK_STAGE && isPlayerAlive
+          tmp.push(skillMap)
+          break;
+        case $enums.SKILL_ACTION_KEY.ASSAULT:
+          skillMap.canUse = getSkillUseStatus(skill, $enums.GAME_STAGE.WOLF_STAGE, assaultAction) // 是否可用
+          skillMap.show = gameInstance.stage === $enums.GAME_STAGE.WOLF_STAGE && isPlayerAlive && isSkillAvailable
+          tmp.push(skillMap)
+          break;
+        case $enums.SKILL_ACTION_KEY.CHECK:
+          skillMap.canUse = getSkillUseStatus(skill,$enums.GAME_STAGE.PREDICTOR_STAGE, checkAction) // 是否可用
+          skillMap.show = gameInstance.stage === $enums.GAME_STAGE.PREDICTOR_STAGE && isPlayerAlive && isSkillAvailable
+          tmp.push(skillMap)
+          break;
+        case $enums.SKILL_ACTION_KEY.ANTIDOTE:
+          skillMap.canUse = getSkillUseStatus(skill,$enums.GAME_STAGE.WITCH_STAGE, (saveAction || poisonAction)) && getWitchAntidoteByGameSettings() // 是否可用
+          skillMap.show = gameInstance.stage === $enums.GAME_STAGE.WITCH_STAGE && isPlayerAlive && isSkillAvailable
+          tmp.push(skillMap)
+          break;
+        case $enums.SKILL_ACTION_KEY.POISON:
+          skillMap.canUse = getSkillUseStatus(skill, $enums.GAME_STAGE.WITCH_STAGE, (saveAction || poisonAction))
+          skillMap.show = gameInstance.stage === $enums.GAME_STAGE.WITCH_STAGE && isPlayerAlive && isSkillAvailable
+          tmp.push(skillMap)
+          break;
+        case $enums.SKILL_ACTION_KEY.SHOOT:
+          skillMap.canUse = computeHunterSkill(skill, gameInstance.stage)
+          skillMap.show = (gameInstance.stage === $enums.GAME_STAGE.AFTER_NIGHT || gameInstance.stage === $enums.PLAYER_STATUS.EXILE_FINISH_STAGE) && isSkillAvailable
+          tmp.push(skillMap)
+          break;
+        default:
       }
     })
     return $helper.wrapResult(true, tmp)
@@ -515,7 +492,7 @@ class gameService extends BaseClass{
           // 使用过技能了
           return $helper.wrapResult(true, info)
         }
-        if(currentPlayer.outReason !== 'poison'){
+        if(currentPlayer.outReason !== $enums.GAME_OUT_REASON.POISON){
           info.push({text: '，你现在可以发动', level: $enums.TEXT_COLOR.BLACK})
           info.push({text: '技能', level: $enums.TEXT_COLOR.GREEN})
         } else {
