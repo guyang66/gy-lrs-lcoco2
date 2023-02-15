@@ -21,6 +21,7 @@ const {
   initMongodb,
   initMongoModel,
   initSchedule,
+  initEnums
 } = require('./loader')
 
 class Application extends Koa{
@@ -31,6 +32,7 @@ class Application extends Koa{
 
     // 初始化config
     this.$config = initConfig(this);
+    this.$enums = initEnums(this)
 
     // 初始化静态变量
     this.$constants = initConstants()

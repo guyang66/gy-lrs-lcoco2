@@ -16,6 +16,10 @@ const initConstants = function () {
   return require('../../common/constants')
 }
 
+const initEnums = function () {
+  return require('../../common/enums')
+}
+
 const initErrorCode = function () {
   return require('../../common/errorCode')
 }
@@ -183,4 +187,5 @@ module.exports = {
   initConstants,
   initErrorCode,
   initWs,
+  initEnums,
 }

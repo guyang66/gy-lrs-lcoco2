@@ -1,3 +1,4 @@
+const enums = require('./enums')
 module.exports = {
   errorCode: {
     SYSTEM_ERROR: -1, // 系统错误
@@ -6,40 +7,43 @@ module.exports = {
   gameModeMap: {
     'standard_9': ['wolf', 'wolf', 'wolf', 'villager', 'villager', 'villager', 'predictor', 'witch', 'hunter']
   },
+  predictor_timer: 30,
+  wolf_timer: 40,
+  witch_timer: 30,
   skillMap: {
     wolf: [
       {
         name: '袭击',
         key: 'assault',
-        status: 1,
+        status: enums.SKILL_STATUS.AVAILABLE
       },{
         name: '自爆',
         key: 'boom',
-        status: 1,
+        status: enums.SKILL_STATUS.AVAILABLE,
       }],
     predictor: [
       {
         name: '查验',
         key: 'check',
-        status: 1,
+        status: enums.SKILL_STATUS.AVAILABLE,
       }],
     witch: [
       {
         name: '解药',
         key: 'antidote',
-        status: 1,
+        status: enums.SKILL_STATUS.AVAILABLE,
       },
       {
         name: '毒药',
         key: 'poison',
-        status: 1,
+        status: enums.SKILL_STATUS.AVAILABLE,
       }
     ],
     hunter: [
       {
         name: '开枪',
         key: 'shoot',
-        status: 0, // 猎人最开始不能开枪
+        status: enums.SKILL_STATUS.UNAVAILABLE, // 猎人最开始不能开枪, 需要满足条件之后才能发动技能
       }
     ],
     villager: [],
@@ -47,7 +51,7 @@ module.exports = {
       {
         name: '守护',
         key: 'defend',
-        status: 1,
+        status: enums.SKILL_STATUS.AVAILABLE,
       }
     ]
   },
@@ -119,87 +123,87 @@ module.exports = {
     '1-0': [
       {
         text: '请确认自己的身份，准备开始游戏，天黑请闭眼...',
-        level: 1, // 黑色字体
+        level: enums.TEXT_COLOR.BLACK
       }
     ],
     '*-0': [
       {
         text: '天黑请闭眼...',
-        level: 1, // 黑色字体
+        level: enums.TEXT_COLOR.BLACK
       }
     ],
     '*-1': [
       {
         text: '预言家',
-        level: 2, // 红色字体
+        level: enums.TEXT_COLOR.RED
       },
       {
         text: '请行动，选择你要查验的玩家。',
-        level: 1, // 黑色字体
+        level: enums.TEXT_COLOR.BLACK
       }
     ],
     '*-2': [
       {
         text: '狼人',
-        level: 2, // 红色字体
+        level: enums.TEXT_COLOR.RED
       },
       {
         text: '请行动，请选择袭击一位玩家。',
-        level: 1, // 黑色字体
+        level: enums.TEXT_COLOR.BLACK
       }
     ],
     '*-3': [
       {
         text: '女巫',
-        level: 2, // 红色字体
+        level: enums.TEXT_COLOR.RED
       },
       {
         text: '请行动，你有一瓶解药和毒药，请选择使用一种。',
-        level: 1, // 黑色字体
+        level: enums.TEXT_COLOR.BLACK
       }
     ],
     '*-6': [
       {
         text: '开始',
-        level: 1, // 红色字体
+        level: enums.TEXT_COLOR.BLACK
       },
       {
         text: '投票',
-        level: 2, // 黑色字体
+        level: enums.TEXT_COLOR.RED
       },
       {
         text: '，请使用投票技能进行投票，如果要',
-        level: 1, // 黑色字体
+        level: enums.TEXT_COLOR.BLACK
       },
       {
         text: '弃票',
-        level: 2, // 黑色字体
+        level: enums.TEXT_COLOR.RED
       },
       {
         text: '，则不进行任何操作，等待主持人进入下一阶段',
-        level: 1, // 黑色字体
+        level: enums.TEXT_COLOR.BLACK
       },
     ],
     '*-6.5': [
       {
         text: '开始',
-        level: 1, // 红色字体
+        level: enums.TEXT_COLOR.BLACK
       },
       {
         text: '加赛投票',
-        level: 4, // 黑色字体
+        level: enums.TEXT_COLOR.BLUE
       },
       {
         text: '，请使用投票技能进行投票，如果要',
-        level: 1, // 黑色字体
+        level: enums.TEXT_COLOR.BLACK
       },
       {
         text: '弃票',
-        level: 2, // 黑色字体
+        level: enums.TEXT_COLOR.RED
       },
       {
         text: '，则不进行任何操作，等待主持人进入下一阶段',
-        level: 1, // 黑色字体
+        level: enums.TEXT_COLOR.BLACK
       },
     ]
   }
