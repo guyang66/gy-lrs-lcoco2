@@ -21,6 +21,20 @@ module.exports = {
       enums.GAME_ROLE.VILLAGER
     ]
   },
+  MODE: {
+    standard_9:  {
+      name: '标准9人局',
+      key: 'standard_9',
+      count: 9,
+      content: null
+    },
+    standard_6:  {
+      name: '标准6人局',
+      key: 'standard_6',
+      count: 6,
+      content: null
+    },
+  },
   gameModeMap: {
     'standard_9': ['wolf', 'wolf', 'wolf', 'villager', 'villager', 'villager', 'predictor', 'witch', 'hunter']
   },

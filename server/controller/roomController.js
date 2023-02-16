@@ -36,7 +36,7 @@ class roomController extends BaseClass {
    */
   async getRoomInfo () {
     const { service, ctx, app } = this
-    const { $helper, $model, $support } = app
+    const { $helper, $model, $support, $constants } = app
     const { room, user } = $model
     const { id } = ctx.query
     if(!id || id === ''){
@@ -69,7 +69,7 @@ class roomController extends BaseClass {
     }
 
     let waitPlayerArray = []
-    for(let i =0; i < roomInstance.wait.length; i++){
+    for(let i = 0; i < roomInstance.wait.length; i++){
       let item = roomInstance.wait[i]
       let player = await service.baseService.queryOne(user, {username: item})
       if(player){
@@ -93,7 +93,7 @@ class roomController extends BaseClass {
       }
     })
 
-    let gameInfo = {
+    let info = {
       waitPlayer: waitPlayerArray,
       wait: roomInstance.wait,
       _id: roomInstance._id,
@@ -102,9 +102,13 @@ class roomController extends BaseClass {
       status: roomInstance.status, // 游戏状态
       seat: seatInfo, // 座位信息
       seatStatus: seatStatus, // 是否已做满  0：未坐满（不能开始游戏）1：已坐满（可开始游戏）
-      gameId: roomInstance.gameId
+      seatStatusString: seatStatus === 0 ? '未坐满' : '已坐满',
+      gameId: roomInstance.gameId,
+      mode: roomInstance.mode,
+      modeName: $constants.MODE[roomInstance.mode] ? $constants.MODE[roomInstance.mode].name : '未知板子',
+      playerCount: roomInstance.count
     }
-    ctx.body = $helper.Result.success(gameInfo)
+    ctx.body = $helper.Result.success(info)
   }
 
   /**
@@ -383,6 +387,89 @@ class roomController extends BaseClass {
       }
     })
     ctx.body = $helper.Result.success('入座成功')
+  }
+
+  /**
+   * 获取房间内可用板子
+   * @returns {Promise<void>}
+   */
+  async getRoomMode () {
+    const { ctx, app } = this
+    const { $helper, $constants } = app
+    const { MODE } = $constants
+    let list = []
+    for(let mode in MODE){
+      list.push(MODE[mode])
+    }
+    ctx.body = $helper.Result.success(list)
+  }
+
+  /**
+   * 修改板子
+   * @returns {Promise<void>}
+   */
+  async changeRoomMode () {
+    const { service, ctx, app } = this
+    const { $helper, $model, $constants, $ws } = app
+    const { room } = $model
+    const { id, mode } = ctx.query
+    if(!id || id === ''){
+      ctx.body = $helper.Result.fail(-1,'房间id不能为空！')
+      return
+    }
+    if(!mode || mode === ''){
+      ctx.body = $helper.Result.fail(-1,'板子key不能为空！')
+      return
+    }
+    const { MODE } = $constants
+    let targetMode = MODE[mode]
+    if(!targetMode){
+      ctx.body = $helper.Result.fail(-1,'无效或不存在的板子！')
+      return
+    }
+    let roomInstance = await service.baseService.queryById(room, id)
+    if(!roomInstance){
+      ctx.body = $helper.Result.fail(-1,'该房间不存在！')
+      return
+    }
+    let currentUser = await service.baseService.userInfo()
+    if(roomInstance.owner !== currentUser.username){
+      ctx.body = $helper.Result.fail(-1,'你无权改变该房间的板子！')
+      return
+    }
+    let update = {
+      mode: targetMode.key,
+      count: targetMode.count,
+      v1: null,
+      v2: null,
+      v3: null,
+      v4: null,
+      v5: null,
+      v6: null,
+      v7: null,
+      v8: null,
+      v9: null,
+      v10: null,
+      v11: null,
+      v12: null,
+    }
+    // 改变板子之后，座位清空全部进入等待区
+    let newWaitPlayer = []
+    for(let i = 0; i < 12; i ++) {
+      if(roomInstance['v' + (i + 1)]){
+        newWaitPlayer.push(roomInstance['v' + (i + 1)])
+      }
+    }
+    update.wait = roomInstance.wait.concat(newWaitPlayer)
+
+    await service.baseService.updateById(room, roomInstance._id, update)
+    $ws.connections.forEach(function (conn) {
+      let url = '/lrs/' + roomInstance._id
+      if(conn.path === url){
+        conn.sendText('refreshRoom')
+      }
+    })
+    ctx.body = $helper.Result.success('ok')
   }
 }
 module.exports = roomController

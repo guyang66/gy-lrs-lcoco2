@@ -1,4 +1,4 @@
-import React,  {useState}  from "react";
+import React,  {useState, useEffect}  from "react";
 import "./index.styl";
 
 import {inject, observer} from "mobx-react";
@@ -11,7 +11,7 @@ import cls from "classnames";
 import helper from '@helper'
 import constants from "@common/constants";
 
-import {Button, Input, message, Modal, Radio} from "antd";
+import {Button, Input, message, Modal, Radio, Space} from "antd";
 import {PlusCircleOutlined, MinusCircleOutlined} from '@ant-design/icons';
 
 const { witchSaveOptions, winConditionOptions, flatTicketOptions } = constants
@@ -24,6 +24,9 @@ const Ready = (props) => {
   const [newName, setNewName] = useState(null)
 
   const [settingModal, setSettingModal]= useState(false)
+  const [modeModal, setModeModal] = useState(false)
+  const [modeList, setModeList] = useState([])
+  const [currentMode, setCurrentMode] = useState('')
 
   const [gameSetting, setGameSetting] = useState({
     p1: 30,
@@ -36,6 +39,9 @@ const Ready = (props) => {
 
   const [kick, setKick] = useState(false)
 
+  useEffect(()=>{
+    setCurrentMode(roomDetail.mode)
+  },[])
 
   const modifyName = () => {
     if(!newName || newName === ''){
@@ -48,6 +54,7 @@ const Ready = (props) => {
       setNewName(null)
     })
   }
+
 
   const seatIn = (index) => {
     apiRoom.seatIn({id: roomDetail._id, position: index}).then(data=>{
@@ -82,6 +89,25 @@ const Ready = (props) => {
         winCondition: 1,
         flatTicket: 1,
       })
+    })
+  }
+
+  const chooseMode = () => {
+    apiRoom.getRoomMode().then(data=>{
+      setModeList(data)
+      setCurrentMode(roomDetail.mode)
+      setModeModal(true)
+    })
+  }
+
+  const onModeChange = (e) => {
+    setCurrentMode(e.target.value)
+  }
+
+  const confirmMode = () => {
+    apiRoom.changeRoomMode({id: roomDetail._id, mode: currentMode}).then(data=>{
+      setModeModal(false)
+      message.success('修改成功！')
     })
   }
 
@@ -160,6 +186,21 @@ const Ready = (props) => {
           }
         >
           开始游戏
+        </Button> : null
+      }
+      {
+        helper.hasCPermission('system.host', appStore) ? <Button
+          size="large"
+          className={cls({
+            'mar-t10 full-btn btn-folk': true,
+          })}
+          onClick={
+            ()=>{
+              chooseMode()
+            }
+          }
+        >
+          游戏板子
         </Button> : null
       }
       {
@@ -322,6 +363,44 @@ const Ready = (props) => {
           </div>
         </div>
       </Modal>
+
+      <Modal
+        title={
+          <div className="setting-modal-title">
+            选择游戏板子
+          </div>
+        }
+        centered
+        className="modal-view-wrap"
+        maskClosable={false}
+        closable={false}
+        width={500}
+        maskStyle={{
+          backgroundColor: 'rgba(0,0,0,0.1)',
+        }}
+        visible={modeModal}
+        onOk={()=>{
+          confirmMode()
+        }}
+        okText="确定"
+        cancelText="取消"
+        onCancel={()=>{
+          setModeModal(false)
+        }}
+      >
+        <div className="mode-content">
+          <Radio.Group value={currentMode} onChange={onModeChange}>
+            <Space direction="vertical">
+              {
+                modeList.map(item=>{
+                  return <Radio value={item.key} key={item.key}>{item.name}</Radio>
+                })
+              }
+            </Space>
+          </Radio.Group>
+        </div>
+      </Modal>
+
     </div>
   )
 }

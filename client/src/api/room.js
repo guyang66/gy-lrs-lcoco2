@@ -10,6 +10,22 @@ export default {
     })
   },
 
+  getRoomMode (params) {
+    return fetch({
+      url: urlPrefix + 'room/mode/auth',
+      method: 'get',
+      params,
+    })
+  },
+
+  changeRoomMode (params) {
+    return fetch({
+      url: urlPrefix + 'room/mode/change/auth',
+      method: 'get',
+      params,
+    })
+  },
+
   getRoomInfo (params) {
     return fetch({
       url: urlPrefix + 'room/info/auth',
