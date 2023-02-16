@@ -803,12 +803,12 @@ class gameService extends BaseClass{
     let updateGame = await service.baseService.queryById(game, gameId)
     if(updateGame.stage === $enums.GAME_STAGE.PREDICTOR_STAGE || updateGame.stage === $enums.GAME_STAGE.WOLF_STAGE || updateGame.stage === $enums.GAME_STAGE.WITCH_STAGE){
       // 预言家
-      let t = updateGame.stage === $enums.GAME_STAGE.PREDICTOR_STAGE ? gameInstance.p1 : $constants.predictor_timer
+      let t = updateGame.stage === $enums.GAME_STAGE.PREDICTOR_STAGE ? gameInstance.p1 : $constants.GAME_CONFIG.PREDICTOR_ACTION_TIME
       if(updateGame.stage === $enums.GAME_STAGE.WOLF_STAGE){
-        t = gameInstance.p2 || $constants.wolf_timer
+        t = gameInstance.p2 || $constants.GAME_CONFIG.WOLF_ACTION_TIME
       }
       if(updateGame.stage === updateGame.stage === $enums.GAME_STAGE.WITCH_STAGE){
-        t = gameInstance.p3 || $constants.witch_timer
+        t = gameInstance.p3 || $constants.GAME_CONFIG.WITCH_ACTION_TIME
       }
 
       $nodeCache.set('game-time-' + gameInstance._id, t)

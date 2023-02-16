@@ -24,9 +24,9 @@ module.exports = app => {
       witchSaveSelf: { type: Number, default: 1 }, // 女巫自救：1：能自救，2：仅第一晚能自救，3：不能自救
       winCondition: { type: Number, default: 1 }, // 胜利条件：1：屠边 2：全屠
       flatTicket: { type: Number, default: 1 }, // 平票怎么处理，1：平票就直接进入黑夜，不pk，2：平票 二者加赛一轮
-      p1: { type: Number, default: constants.predictor_timer }, // 预言家行动时间
-      p2: { type: Number, default: constants.wolf_timer }, // 狼人行动时间
-      p3: { type: Number, default: constants.witch_timer }, // 女巫行动时间
+      p1: { type: Number, default: constants.GAME_CONFIG.PREDICTOR_ACTION_TIME }, // 预言家行动时间
+      p2: { type: Number, default: constants.GAME_CONFIG.WOLF_ACTION_TIME }, // 狼人行动时间
+      p3: { type: Number, default: constants.GAME_CONFIG.WITCH_ACTION_TIME }, // 女巫行动时间
       remark: { type: String },
     }), {
       timestamps: { createdAt: 'createTime', updatedAt: 'modifyTime'},

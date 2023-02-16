@@ -1,8 +1,8 @@
 module.exports = {
   ROOM_STATUS: {
-    READY: 1, // 准备中
-    GOING: 2, // 游戏正在进行中
-    INVALID: 3, // 已失效或房间不存在
+    READY: 0, // 准备中
+    GOING: 1, // 游戏正在进行中
+    INVALID: 2, // 已失效或房间不存在
   },
   GAME_STATUS: {
     GOING: 1, // 游戏进行中
@@ -55,7 +55,7 @@ module.exports = {
     VILLAGER: 'villager', // 村民
     GUARD: 'guard',  // 守卫
   },
-  GAME_TEMPLATE: {
+  GAME_MODE: {
     STANDARD_6: 'standard_6', // 标准6人局
     STANDARD_9: 'standard_9', // 标准9人局
   },

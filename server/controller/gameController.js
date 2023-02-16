@@ -60,14 +60,14 @@ class gameController extends BaseClass {
       v7: roomInstance.v7,
       v8: roomInstance.v8,
       v9: roomInstance.v9,
-      playerCount: $constants.gamePlayerCount,
-      p1: setting.p1 || $constants.predictor_timer,
-      p2: setting.p2 || $constants.wolf_timer,
-      p3: setting.p3 || $constants.witch_timer,
+      playerCount: 9,
+      p1: setting.p1 || $constants.GAME_CONFIG.PREDICTOR_ACTION_TIME,
+      p2: setting.p2 || $constants.GAME_CONFIG.WOLF_ACTION_TIME,
+      p3: setting.p3 || $constants.GAME_CONFIG.WITCH_ACTION_TIME,
       witchSaveSelf: setting.witchSaveSelf || $enums.GAME_WITCH_SAVE_SELF.SAVE_ONLY_FIRST_NIGHT,
       winCondition: setting.winCondition || $enums.GAME_WIN_CONDITION.KILL_HALF_ROLE,
       flatTicket: setting.flatTicket || $enums.GAME_TICKET_FLAT.NO_PK,
-      mode: $enums.GAME_TEMPLATE.STANDARD_9 // 标准9人局
+      mode: $enums.GAME_MODE.STANDARD_9 // 标准9人局
     }
 
     // 创建游戏实例
@@ -78,7 +78,7 @@ class gameController extends BaseClass {
     let playerCount = gameInstance.playerCount
     const standard9RoleArray = gameModeMap[mode]
     let randomPlayers = $helper.getRandomNumberArray(1, playerCount, playerCount, standard9RoleArray)
-    for(let i =0; i < randomPlayers.length; i ++ ){
+    for(let i = 0; i < randomPlayers.length; i ++ ){
       let item = randomPlayers[i]
       let randomUser = await service.baseService.queryOne(user,  {username: roomInstance['v' + (item.number)]})
       let p = {

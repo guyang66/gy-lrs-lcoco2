@@ -47,7 +47,7 @@ class roomService extends BaseClass{
    */
   async getRoomSeatPlayer (roomId, showPlayerInfo = false) {
     const { service, app} = this
-    const { $helper, $model } = app
+    const { $helper, $model, $constants } = app
 
     const { user, room } = $model
     if(!roomId){
@@ -57,7 +57,7 @@ class roomService extends BaseClass{
     if(!roomInstance){
       return $helper.wrapResult(false, '房间不存在！', -1)
     }
-    let count = roomInstance.count || 9
+    let count = roomInstance.count
     let list = []
     for(let i = 0; i < count; i++){
       let columnKey = 'v' + (i + 1)

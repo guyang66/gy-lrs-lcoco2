@@ -1,16 +1,29 @@
 const enums = require('./enums')
 module.exports = {
-  errorCode: {
-    SYSTEM_ERROR: -1, // 系统错误
-    NOT_LOGIN: -3, // 用户未登录
+  GAME_CONFIG:{
+    PREDICTOR_ACTION_TIME: 30,
+    WOLF_ACTION_TIME: 45,
+    WITCH_ACTION_TIME: 30,
+    DEFAULT_PLAYER_COUNT: 9, // 默认9人局
+  },
+  STANDARD_9_CONFIG: {
+    MODE: 'standard_9',
+    PLAYER_COUNT: 9,
+    ROLE_MAP: [
+      enums.GAME_ROLE.WOLF,
+      enums.GAME_ROLE.WOLF,
+      enums.GAME_ROLE.WOLF,
+      enums.GAME_ROLE.PREDICTOR,
+      enums.GAME_ROLE.WITCH,
+      enums.GAME_ROLE.HUNTER,
+      enums.GAME_ROLE.VILLAGER,
+      enums.GAME_ROLE.VILLAGER,
+      enums.GAME_ROLE.VILLAGER
+    ]
   },
   gameModeMap: {
     'standard_9': ['wolf', 'wolf', 'wolf', 'villager', 'villager', 'villager', 'predictor', 'witch', 'hunter']
   },
-  gamePlayerCount: 9,
-  predictor_timer: 30,
-  wolf_timer: 40,
-  witch_timer: 30,
   skillMap: {
     wolf: [
       {

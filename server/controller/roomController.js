@@ -6,7 +6,7 @@ class roomController extends BaseClass {
    */
   async createRoom () {
     const { service, ctx, app } = this
-    const { $helper, $model } = app
+    const { $helper, $model, $enums } = app
     const { room } = $model
     const { roomName } = ctx.query
     if(!roomName || roomName === ''){
@@ -17,7 +17,7 @@ class roomController extends BaseClass {
     let password = $helper.getRandomCode()
     let obj = {
       name: roomName,
-      status: 0,
+      status: $enums.ROOM_STATUS.READY,
       password: password,
       owner: currentUser.username,
       wait: [currentUser.username] // 创建房间后，房主自动加入等待区
@@ -113,7 +113,7 @@ class roomController extends BaseClass {
    */
   async joinRoom () {
     const { service, ctx, app } = this
-    const { $helper, $model, $ws } = app
+    const { $helper, $model, $ws, $enums } = app
     const { room} = $model
     const { key } = ctx.query
     if(!key || key === ''){
@@ -147,9 +147,9 @@ class roomController extends BaseClass {
       await service.baseService.updateById(room, roomInstance._id, {wait: newWait})
     }
 
-    if(roomInstance.status === 1){
+    if(roomInstance.status === $enums.ROOM_STATUS.GOING){
       // 正在游戏中
-      let string = roomInstance.status === 1 ? '游戏已开始，请尝试进入观战模式！' : '游戏已结束！'
+      let string = '游戏已开始，请尝试进入观战模式！'
       ctx.body = $helper.Result.fail(-1, string)
       return
     }
@@ -171,7 +171,7 @@ class roomController extends BaseClass {
    */
   async quitRoom () {
     const { ctx, service, app } = this
-    const { $helper, $model, $ws } = app
+    const { $helper, $model, $ws, $enums, $constants } = app
     const { room } = $model
     const { id, username } = ctx.query
     if(!id || id === ''){
@@ -183,13 +183,14 @@ class roomController extends BaseClass {
       return
     }
     let currentUser = await service.baseService.userInfo()
+    console.log(currentUser.username, username)
     if(currentUser.username !== username){
       ctx.body = $helper.Result.fail(-1,'你不能操作别人账号退出房间！')
       return
     }
 
     let roomInstance = await service.baseService.queryById(room, id)
-    if(roomInstance.status !== 0){
+    if(roomInstance.status !== $enums.ROOM_STATUS.READY){
       // 游戏中或游戏结束，则可以随意退出，下次进来还是在游戏中
       ctx.body = $helper.Result.success(-1, '退出房间成功！')
       return
@@ -204,7 +205,7 @@ class roomController extends BaseClass {
       }
       return false
     }
-    let seatCount = roomInstance.count || 9
+    let seatCount = roomInstance.count
     for(let i = 0; i < seatCount ;i ++){
       let t = seatUpdate('v' + (i + 1))
       if(t){
