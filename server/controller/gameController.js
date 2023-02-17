@@ -1,4 +1,5 @@
 const BaseClass = require('../base/BaseClass')
+const Stack = require('../base/StackClass')
 class gameController extends BaseClass {
   /**
    * 开始游戏
@@ -6,7 +7,7 @@ class gameController extends BaseClass {
    */
   async gameStart () {
     const { service, ctx, app } = this
-    const { $helper, $model, $constants, $support, $ws, $enums } = app
+    const { $helper, $model, $constants, $support, $ws, $enums, $nodeCache } = app
     const { room, game, user, player, vision, record } = $model
     const { gameModeMap, skillMap } = $constants
     let { id, setting } = ctx.request.body
@@ -67,11 +68,21 @@ class gameController extends BaseClass {
       witchSaveSelf: setting.witchSaveSelf || $enums.GAME_WITCH_SAVE_SELF.SAVE_ONLY_FIRST_NIGHT,
       winCondition: setting.winCondition || $enums.GAME_WIN_CONDITION.KILL_HALF_ROLE,
       flatTicket: setting.flatTicket || $enums.GAME_TICKET_FLAT.NO_PK,
-      mode: $enums.GAME_MODE.STANDARD_9 // 标准9人局
+      mode: roomInstance.mode  // 标准9人局
     }
 
     // 创建游戏实例
     let gameInstance = await service.baseService.save(game, gameObject)
+
+    let gameConfig = $constants.MODE[roomInstance.mode]
+    let stack = [].concat(gameConfig.STAGE).reverse()
+    console.log('第一次')
+    console.log(gameConfig.STAGE)
+    let gameStack = new Stack(stack)
+    // 直接进入第一阶段
+    gameStack.pop()
+    // 根据板子来创建游戏栈
+    $nodeCache.set('game-stack-' + gameInstance._id, gameStack)
 
     // 随机创建player
     let mode = gameInstance.mode

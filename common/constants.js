@@ -19,6 +19,16 @@ module.exports = {
       enums.GAME_ROLE.VILLAGER,
       enums.GAME_ROLE.VILLAGER,
       enums.GAME_ROLE.VILLAGER
+    ],
+    STAGE: [
+      enums.GAME_STAGE.READY,
+      enums.GAME_STAGE.PREDICTOR_STAGE,
+      enums.GAME_STAGE.WOLF_STAGE,
+      enums.GAME_STAGE.WITCH_STAGE,
+      enums.GAME_STAGE.AFTER_NIGHT,
+      enums.GAME_STAGE.SPEAK_STAGE,
+      enums.GAME_STAGE.VOTE_STAGE,
+      enums.GAME_STAGE.EXILE_FINISH_STAGE,
     ]
   },
   MODE: {
@@ -26,7 +36,27 @@ module.exports = {
       name: '标准9人局',
       key: 'standard_9',
       count: 9,
-      content: null
+      ROLE_MAP: [
+        enums.GAME_ROLE.WOLF,
+        enums.GAME_ROLE.WOLF,
+        enums.GAME_ROLE.WOLF,
+        enums.GAME_ROLE.PREDICTOR,
+        enums.GAME_ROLE.WITCH,
+        enums.GAME_ROLE.HUNTER,
+        enums.GAME_ROLE.VILLAGER,
+        enums.GAME_ROLE.VILLAGER,
+        enums.GAME_ROLE.VILLAGER
+      ],
+      STAGE: [
+        enums.GAME_STAGE.READY,
+        enums.GAME_STAGE.PREDICTOR_STAGE,
+        enums.GAME_STAGE.WOLF_STAGE,
+        enums.GAME_STAGE.WITCH_STAGE,
+        enums.GAME_STAGE.AFTER_NIGHT,
+        enums.GAME_STAGE.SPEAK_STAGE,
+        enums.GAME_STAGE.VOTE_STAGE,
+        enums.GAME_STAGE.EXILE_FINISH_STAGE,
+      ]
     },
     standard_6:  {
       name: '标准6人局',

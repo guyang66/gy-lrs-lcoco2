@@ -1,4 +1,5 @@
 const BaseClass = require('../base/BaseClass')
+const Stack = require('../base/StackClass')
 
 class gameService extends BaseClass{
   /**
@@ -115,6 +116,10 @@ class gameService extends BaseClass{
       return gameInstance.stage === targetStage && currentPlayer.status === $enums.PLAYER_STATUS.ALIVE && skill.status === $enums.SKILL_STATUS.AVAILABLE
     }
     const getWitchAntidoteByGameSettings = () => {
+      // 狼人空刀，不能使用解药
+      if(!killAction){
+        return false
+      }
       // 不能自救且死的是自己，不能使用解药
       if(gameInstance.witchSaveSelf ===  $enums.GAME_WITCH_SAVE_SELF.NO_SAVE_SELF && killAction.to === currentUser.username){
         return false
@@ -422,7 +427,7 @@ class gameService extends BaseClass{
       if(!killAction){
         let info = []
         info.push({text: '今晚没有玩家', level: $enums.TEXT_COLOR.BLACK})
-        info.push({text: '死亡', level: $enums.TEXT_COLOR.RED})
+        info.push({text: '被袭击', level: $enums.TEXT_COLOR.RED})
         return $helper.wrapResult(true, info)
       }
       let dieUsername = killAction.to
@@ -720,13 +725,6 @@ class gameService extends BaseClass{
     let gameInstance = await service.baseService.queryById(game, gameId)
     let stage = gameInstance.stage
 
-    // todo: 之后用栈来做，平票pk的阶段可以临时推入栈
-    let nextStage = stage + 1 // 下一个要进入的阶段
-    if(nextStage > 7) {
-      // 进入第二天流程
-      nextStage = 0
-    }
-
     if(stage === $enums.GAME_STAGE.PREDICTOR_STAGE){
       // 结算预言家是否空过
       let settleResult = await service.stageService.predictorStage(gameInstance._id)
@@ -760,7 +758,11 @@ class gameService extends BaseClass{
       }
       if(settleResult.result && settleResult.data === 'Y'){
         // 需要pk
-        nextStage = $enums.GAME_STAGE.VOTE_PK_STAGE
+        let gameStack = $nodeCache.get('game-stack-' + gameInstance._id)
+        gameStack.push($enums.GAME_STAGE.VOTE_PK_STAGE)
+        $nodeCache.set('game-stack-' + gameInstance._id, gameStack)
+
+        // nextStage = $enums.GAME_STAGE.VOTE_PK_STAGE
       }
     } else if (stage === $enums.GAME_STAGE.VOTE_PK_STAGE){
       // 投票pk加赛 => 遗言 ,需要整理票型， 结算死亡玩家
@@ -768,12 +770,21 @@ class gameService extends BaseClass{
       if(!settleResult.result){
         return settleResult
       }
-      nextStage = $enums.GAME_STAGE.EXILE_FINISH_STAGE
+      // nextStage = $enums.GAME_STAGE.EXILE_FINISH_STAGE
+    } else if (stage === $enums.GAME_STAGE.EXILE_FINISH_STAGE){
+      // 最后一个阶段， 重置
+      let gameConfig = $constants.MODE[gameInstance.mode]
+      let newStack = new Stack([].concat(gameConfig.STAGE).reverse())
+      $nodeCache.set('game-stack-' + gameInstance._id, newStack)
     }
 
+    // todo: 之后用栈来做，平票pk的阶段可以临时推入栈 nodecache重启之后就不会再有了
+    let gameStack = $nodeCache.get('game-stack-' + gameInstance._id)
+    let nextStage = gameStack.pop()
+    $nodeCache.set('game-stack-' + gameInstance._id, gameStack)
     // 修改游戏状态
     let update = {stage: nextStage}
-    if(nextStage === 0){
+    if(nextStage === $enums.GAME_STAGE.READY){
       update.day = gameInstance.day + 1
       let recordObject = {
         roomId: gameInstance.roomId,

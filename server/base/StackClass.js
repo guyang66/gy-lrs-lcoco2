@@ -1,7 +1,7 @@
 class StackClass {
   // 模拟栈数据结构
-  constructor() {
-    this.items = []
+  constructor(p = []) {
+    this.items = p
   }
 
   /**
