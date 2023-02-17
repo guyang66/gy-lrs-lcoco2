@@ -62,11 +62,19 @@ module.exports = {
       name: '标准6人局',
       key: 'standard_6',
       count: 6,
-      content: null
+      ROLE_MAP: [
+        enums.GAME_ROLE.WOLF,
+        enums.GAME_ROLE.WOLF,
+        enums.GAME_ROLE.WOLF,
+        enums.GAME_ROLE.PREDICTOR,
+        enums.GAME_ROLE.GUARD,
+        enums.GAME_ROLE.VILLAGER,
+        enums.GAME_ROLE.VILLAGER
+      ],
+      STAGE: [
+
+      ]
     },
-  },
-  gameModeMap: {
-    'standard_9': ['wolf', 'wolf', 'wolf', 'villager', 'villager', 'villager', 'predictor', 'witch', 'hunter']
   },
   skillMap: {
     wolf: [

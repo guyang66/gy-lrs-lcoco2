@@ -1,3 +1,4 @@
+const Stack = require('../base/StackClass')
 module.exports = app => ({
 
   /**
@@ -64,5 +65,17 @@ module.exports = app => ({
       return false
     }
     return obList.includes(username)
+  },
+
+  /**
+   * 获取游戏stage栈
+   * @param gameInstance
+   * @returns {StackClass}
+   */
+  getStageStack(gameInstance) {
+    if(!gameInstance){
+      return new Stack()
+    }
+    return new Stack(gameInstance.stageStack)
   }
 })

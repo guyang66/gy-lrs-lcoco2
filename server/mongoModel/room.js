@@ -22,7 +22,7 @@ module.exports = app => {
       V11: { type: String }, // 座位11
       v12: { type: String }, // 座位12
       mode: { type: String, default: constants.STANDARD_9_CONFIG.MODE },
-      count: {type: Number, default: constants.STANDARD_9_CONFIG.PLAYER_COUNT }, // 默认9个座位
+      count: {type: Number, default: constants.STANDARD_9_CONFIG.PLAYER_COUNT }, // 默认坐9个人（9人标准局）
       wait: { type: Array, default: []}, // 等待区
       ob: { type: Array, default: []}, // 观众席，观众要跳过一些逻辑判断
       remark: { type: String },

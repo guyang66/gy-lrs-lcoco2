@@ -1,5 +1,4 @@
 const BaseClass = require('../base/BaseClass')
-const Stack = require('../base/StackClass')
 class stageService extends BaseClass{
   /**
    * 预言家阶段结算
@@ -814,9 +813,9 @@ class stageService extends BaseClass{
           await service.baseService.save(gameTag, pkTagObject)
           // 进入到6.5阶段（pk阶段）
           needPk = 'Y'
-          let stk = $nodeCache.get('game-stack-' + gameInstance._id)
-          stk.push($enums.GAME_STAGE.VOTE_PK_STAGE)
-          $nodeCache.set('game-stack-' + gameInstance._id, stk)
+          let gameStack = $support.getStageStack(gameInstance)
+          gameStack.push($enums.GAME_STAGE.VOTE_PK_STAGE)
+          await service.baseService.updateById(game, gameInstance._id, {stageStack: gameStack.getItems()})
         }
       }
     }
@@ -832,15 +831,15 @@ class stageService extends BaseClass{
    */
   async newRound (id) {
     const { service, app } = this
-    const { $helper, $model, $nodeCache, $constants } = app
+    const { $helper, $model, $constants } = app
     const { game } = $model
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)
     }
     let gameInstance = await service.baseService.queryById(game, id)
     let gameConfig = $constants.MODE[gameInstance.mode]
-    let newStack = new Stack([].concat(gameConfig.STAGE).reverse())
-    $nodeCache.set('game-stack-' + gameInstance._id, newStack)
+    let newStack = [].concat(gameConfig.STAGE).reverse()
+    await service.baseService.updateById(game, gameInstance._id, {stageStack: newStack})
     return $helper.wrapResult(true, '')
   }
 }

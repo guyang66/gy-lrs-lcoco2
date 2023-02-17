@@ -4,6 +4,9 @@ class StackClass {
     this.items = p
   }
 
+  getItems () {
+    return this.items
+  }
   /**
    * 向栈压入一个元素
    * @param element

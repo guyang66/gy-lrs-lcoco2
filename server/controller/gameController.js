@@ -9,7 +9,7 @@ class gameController extends BaseClass {
     const { service, ctx, app } = this
     const { $helper, $model, $constants, $support, $ws, $enums, $nodeCache } = app
     const { room, game, user, player, vision, record } = $model
-    const { gameModeMap, skillMap } = $constants
+    const { skillMap } = $constants
     let { id, setting } = ctx.request.body
     if(!id || id === ''){
       ctx.body = $helper.Result.fail(-1,'roomId不能为空！')
@@ -46,12 +46,13 @@ class gameController extends BaseClass {
       return
     }
 
+    let gameConfig = $constants.MODE[roomInstance.mode]
+    let stack = [].concat(gameConfig.STAGE).reverse()
+
     let gameObject = {
       roomId: roomInstance._id,
       owner: roomInstance.owner,
-      status: $enums.GAME_STATUS.GOING,
-      stage: $enums.GAME_STAGE.READY, // 阶段
-      day: 1, // 第一天
+      stageStack: stack,
       v1: roomInstance.v1,
       v2: roomInstance.v2,
       v3: roomInstance.v3,
@@ -61,7 +62,10 @@ class gameController extends BaseClass {
       v7: roomInstance.v7,
       v8: roomInstance.v8,
       v9: roomInstance.v9,
-      playerCount: 9,
+      v10: roomInstance.v10,
+      v11: roomInstance.v11,
+      v12: roomInstance.v12,
+      playerCount: roomInstance.count,
       p1: setting.p1 || $constants.GAME_CONFIG.PREDICTOR_ACTION_TIME,
       p2: setting.p2 || $constants.GAME_CONFIG.WOLF_ACTION_TIME,
       p3: setting.p3 || $constants.GAME_CONFIG.WITCH_ACTION_TIME,
@@ -74,20 +78,20 @@ class gameController extends BaseClass {
     // 创建游戏实例
     let gameInstance = await service.baseService.save(game, gameObject)
 
-    let gameConfig = $constants.MODE[roomInstance.mode]
-    let stack = [].concat(gameConfig.STAGE).reverse()
-    console.log('第一次')
-    console.log(gameConfig.STAGE)
-    let gameStack = new Stack(stack)
     // 直接进入第一阶段
-    gameStack.pop()
-    // 根据板子来创建游戏栈
-    $nodeCache.set('game-stack-' + gameInstance._id, gameStack)
+    let gameStack = $support.getStageStack(gameInstance)
+    let nextStage = gameStack.pop()
+    await service.baseService.updateById(game, gameInstance._id, {
+      day: 1, // 第一天
+      status: $enums.GAME_STATUS.GOING,
+      stage: nextStage,
+      stageStack: gameStack.getItems()
+    })
 
     // 随机创建player
     let mode = gameInstance.mode
     let playerCount = gameInstance.playerCount
-    const standard9RoleArray = gameModeMap[mode]
+    const standard9RoleArray = $constants.MODE[mode].ROLE_MAP
     let randomPlayers = $helper.getRandomNumberArray(1, playerCount, playerCount, standard9RoleArray)
     for(let i = 0; i < randomPlayers.length; i ++ ){
       let item = randomPlayers[i]

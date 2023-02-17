@@ -711,7 +711,7 @@ class gameService extends BaseClass{
    */
   async moveToNextStage (gameId) {
     const { service, app } = this
-    const { $helper, $model, $ws, $nodeCache, $enums, $constants } = app
+    const { $helper, $model, $ws, $nodeCache, $enums, $constants, $support } = app
 
     const { game, record } = $model
 
@@ -747,12 +747,14 @@ class gameService extends BaseClass{
         break
       default:
     }
-    // todo: 之后用栈来做，平票pk的阶段可以临时推入栈 nodecache重启之后就不会再有了
-    let gameStack = $nodeCache.get('game-stack-' + gameInstance._id)
+
+    // 刷新一下（上面可能有更新game的操作，比如push一个stage）
+    gameInstance = await service.baseService.queryById(game, gameId)
+
+    let gameStack = $support.getStageStack(gameInstance)
     let nextStage = gameStack.pop()
-    $nodeCache.set('game-stack-' + gameInstance._id, gameStack)
     // 修改游戏状态
-    let update = {stage: nextStage}
+    let update = {stage: nextStage, stageStack: gameStack.getItems()}
     if(nextStage === $enums.GAME_STAGE.READY){
       update.day = gameInstance.day + 1
       let recordObject = {
