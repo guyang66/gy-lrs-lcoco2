@@ -1,6 +1,4 @@
 const BaseClass = require('../base/BaseClass')
-const Stack = require('../base/StackClass')
-
 class gameService extends BaseClass{
   /**
    * 获取可见的玩家信息
@@ -348,7 +346,6 @@ class gameService extends BaseClass{
         || stage === $enums.GAME_STAGE.WITCH_STAGE
         || stage === $enums.GAME_STAGE.AFTER_NIGHT
     }
-
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)
     }
@@ -725,59 +722,31 @@ class gameService extends BaseClass{
     let gameInstance = await service.baseService.queryById(game, gameId)
     let stage = gameInstance.stage
 
-    if(stage === $enums.GAME_STAGE.PREDICTOR_STAGE){
-      // 结算预言家是否空过
-      let settleResult = await service.stageService.predictorStage(gameInstance._id)
-      if(!settleResult.result){
-        return settleResult
-      }
-    } else if(stage === $enums.GAME_STAGE.WOLF_STAGE){
-      // 结算狼人的实际击杀目标
-      let settleResult = await service.stageService.wolfStage(gameInstance._id)
-      if(!settleResult.result){
-        return settleResult
-      }
-    } else if(stage === $enums.GAME_STAGE.WITCH_STAGE){
-      // 结算女巫的操作结果
-      let settleResult = await service.stageService.witchStage(gameInstance._id)
-      if(!settleResult.result){
-        return settleResult
-      }
-      await service.gameService.settleGameOver(gameInstance._id)
-    } else if (stage === $enums.GAME_STAGE.AFTER_NIGHT) {
-      // 天亮 => 发言环节 , 生成发言顺序等信息
-      let settleResult = await service.stageService.preSpeakStage(gameInstance._id)
-      if(!settleResult.result){
-        return settleResult
-      }
-    } else if (stage === $enums.GAME_STAGE.VOTE_STAGE) {
-      // 投票 => 遗言/pk加赛 ,需要整理票型， 结算死亡玩家
-      let settleResult = await service.stageService.voteStage(gameInstance._id, $enums.GAME_STAGE.VOTE_STAGE)
-      if(!settleResult.result){
-        return settleResult
-      }
-      if(settleResult.result && settleResult.data === 'Y'){
-        // 需要pk
-        let gameStack = $nodeCache.get('game-stack-' + gameInstance._id)
-        gameStack.push($enums.GAME_STAGE.VOTE_PK_STAGE)
-        $nodeCache.set('game-stack-' + gameInstance._id, gameStack)
-
-        // nextStage = $enums.GAME_STAGE.VOTE_PK_STAGE
-      }
-    } else if (stage === $enums.GAME_STAGE.VOTE_PK_STAGE){
-      // 投票pk加赛 => 遗言 ,需要整理票型， 结算死亡玩家
-      let settleResult = await service.stageService.voteStage(gameInstance._id, $enums.GAME_STAGE.VOTE_PK_STAGE)
-      if(!settleResult.result){
-        return settleResult
-      }
-      // nextStage = $enums.GAME_STAGE.EXILE_FINISH_STAGE
-    } else if (stage === $enums.GAME_STAGE.EXILE_FINISH_STAGE){
-      // 最后一个阶段， 重置
-      let gameConfig = $constants.MODE[gameInstance.mode]
-      let newStack = new Stack([].concat(gameConfig.STAGE).reverse())
-      $nodeCache.set('game-stack-' + gameInstance._id, newStack)
+    switch (stage) {
+      case $enums.GAME_STAGE.PREDICTOR_STAGE:
+        await service.stageService.predictorStage(gameInstance._id)
+        break
+      case $enums.GAME_STAGE.WOLF_STAGE:
+        await service.stageService.wolfStage(gameInstance._id)
+        break
+      case $enums.GAME_STAGE.WITCH_STAGE:
+        await service.stageService.witchStage(gameInstance._id)
+        await service.gameService.settleGameOver(gameInstance._id)
+        break
+      case $enums.GAME_STAGE.AFTER_NIGHT:
+        await service.stageService.preSpeakStage(gameInstance._id)
+        break
+      case $enums.GAME_STAGE.VOTE_STAGE:
+        await service.stageService.voteStage(gameInstance._id, $enums.GAME_STAGE.VOTE_STAGE)
+        break
+      case $enums.GAME_STAGE.VOTE_PK_STAGE:
+        await service.stageService.voteStage(gameInstance._id, $enums.GAME_STAGE.VOTE_PK_STAGE)
+        break
+      case $enums.GAME_STAGE.EXILE_FINISH_STAGE:
+        await service.stageService.newRound(gameInstance._id)
+        break
+      default:
     }
-
     // todo: 之后用栈来做，平票pk的阶段可以临时推入栈 nodecache重启之后就不会再有了
     let gameStack = $nodeCache.get('game-stack-' + gameInstance._id)
     let nextStage = gameStack.pop()
