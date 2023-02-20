@@ -27,8 +27,7 @@ const Head = (props) => {
   return (
     <div className="game-header-wrap">
       <div className="FBH FBAC FBJC">
-        <span className="room-title">{roomDetail.modeName}-</span>
-        <span className="room-title">房间名：</span>
+        <span className="room-title">{roomDetail.modeName}：</span>
         <span className="room-title welcome-user color-orange">{roomDetail.name}（{roomDetail.password}）</span>
       </div>
       {

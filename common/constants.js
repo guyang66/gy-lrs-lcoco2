@@ -5,31 +5,7 @@ module.exports = {
     WOLF_ACTION_TIME: 45,
     WITCH_ACTION_TIME: 30,
     DEFAULT_PLAYER_COUNT: 9, // 默认9人局
-  },
-  STANDARD_9_CONFIG: {
-    MODE: 'standard_9',
-    PLAYER_COUNT: 9,
-    ROLE_MAP: [
-      enums.GAME_ROLE.WOLF,
-      enums.GAME_ROLE.WOLF,
-      enums.GAME_ROLE.WOLF,
-      enums.GAME_ROLE.PREDICTOR,
-      enums.GAME_ROLE.WITCH,
-      enums.GAME_ROLE.HUNTER,
-      enums.GAME_ROLE.VILLAGER,
-      enums.GAME_ROLE.VILLAGER,
-      enums.GAME_ROLE.VILLAGER
-    ],
-    STAGE: [
-      enums.GAME_STAGE.READY,
-      enums.GAME_STAGE.PREDICTOR_STAGE,
-      enums.GAME_STAGE.WOLF_STAGE,
-      enums.GAME_STAGE.WITCH_STAGE,
-      enums.GAME_STAGE.AFTER_NIGHT,
-      enums.GAME_STAGE.SPEAK_STAGE,
-      enums.GAME_STAGE.VOTE_STAGE,
-      enums.GAME_STAGE.EXILE_FINISH_STAGE,
-    ]
+    DEFAULT_MODE: 'standard_9',
   },
   MODE: {
     standard_9:  {
@@ -76,39 +52,39 @@ module.exports = {
       ]
     },
   },
-  skillMap: {
+  SKILL_MAP: {
     wolf: [
       {
         name: '袭击',
-        key: 'assault',
+        key: enums.SKILL_ACTION_KEY.ASSAULT,
         status: enums.SKILL_STATUS.AVAILABLE
       },{
         name: '自爆',
-        key: 'boom',
+        key: enums.SKILL_ACTION_KEY.BOOM,
         status: enums.SKILL_STATUS.AVAILABLE,
       }],
     predictor: [
       {
         name: '查验',
-        key: 'check',
+        key: enums.SKILL_ACTION_KEY.CHECK,
         status: enums.SKILL_STATUS.AVAILABLE,
       }],
     witch: [
       {
         name: '解药',
-        key: 'antidote',
+        key: enums.SKILL_ACTION_KEY.ANTIDOTE,
         status: enums.SKILL_STATUS.AVAILABLE,
       },
       {
         name: '毒药',
-        key: 'poison',
+        key: enums.SKILL_ACTION_KEY.POISON,
         status: enums.SKILL_STATUS.AVAILABLE,
       }
     ],
     hunter: [
       {
         name: '开枪',
-        key: 'shoot',
+        key: enums.SKILL_ACTION_KEY.SHOOT,
         status: enums.SKILL_STATUS.UNAVAILABLE, // 猎人最开始不能开枪, 需要满足条件之后才能发动技能
       }
     ],
@@ -116,38 +92,38 @@ module.exports = {
     guard: [
       {
         name: '守护',
-        key: 'defend',
+        key: enums.SKILL_ACTION_KEY.DEFEND,
         status: enums.SKILL_STATUS.AVAILABLE,
       }
     ]
   },
-  playerRoleMap: {
+  PLAYER_ROLE_MAP: {
     wolf: {
       name: '狼人',
-      key: 'wolf'
+      key: enums.GAME_ROLE.WOLF
     },
     villager: {
       name: '平民',
-      key: 'villager'
+      key: enums.GAME_ROLE.VILLAGER
     },
     predictor: {
       name: '预言家',
-      key: 'predictor'
+      key: enums.GAME_ROLE.PREDICTOR
     },
     witch: {
       name: '女巫',
-      key: 'witch'
+      key: enums.GAME_ROLE.WITCH
     },
     hunter: {
       name: '猎人',
-      key: 'hunter'
+      key: enums.GAME_ROLE.HUNTER
     },
     guard: {
       name: '守卫',
-      key: 'guard'
+      key: enums.GAME_ROLE.HUNTER
     }
   },
-  stageMap: {
+  STAGE_MAP: {
     0: {
       name: '天黑请闭眼',
       key: 'ready'

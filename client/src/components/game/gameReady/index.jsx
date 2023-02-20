@@ -174,7 +174,7 @@ const Ready = (props) => {
         helper.hasCPermission('system.host', appStore) ? <Button
           size="large"
           className={cls({
-            'btn-primary': !!roomDetail.seatStatus,
+            'btn-primary': roomDetail.seatStatus,
             'btn-info': !roomDetail.seatStatus,
             'mar-t10 full-btn': true,
           })}
@@ -207,7 +207,7 @@ const Ready = (props) => {
         helper.hasCPermission('system.host', appStore) ? <Button
           size="large"
           className={cls({
-            'btn-success': !!roomDetail.seatStatus,
+            'btn-success': roomDetail.seatStatus,
             'mar-t10 full-btn': true,
           })}
           onClick={

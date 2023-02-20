@@ -47,7 +47,7 @@ class roomService extends BaseClass{
    */
   async getRoomSeatPlayer (roomId, showPlayerInfo = false) {
     const { service, app} = this
-    const { $helper, $model, $constants } = app
+    const { $helper, $model } = app
 
     const { user, room } = $model
     if(!roomId){
@@ -80,7 +80,49 @@ class roomService extends BaseClass{
         list.push({player: null, position: i + 1, name: (i + 1) + '号'})
       }
     }
-    return $helper.wrapResult(true, list)
+
+    let isFull = true
+    list.forEach(item=>{
+      if(!item.player){
+        isFull = false
+      }
+    })
+
+    let result = {
+      content: list,
+      isFull: isFull,
+      statusString: isFull ? '未坐满' : '已坐满'
+    }
+
+    return $helper.wrapResult(true, result)
   }
+
+  /**
+   * 根据玩家姓名清空座位
+   * @returns {Promise<void>}
+   */
+  async clearSeat (roomId, username) {
+    const { service, app } = this
+    const { $helper, $model } = app
+    const { room } = $model
+    if(!roomId || roomId === ''){
+      return $helper.wrapResult(false, 'roomId为空！', -1)
+    }
+    if(!username || username === ''){
+      return $helper.wrapResult(false, 'username为空！', -1)
+    }
+
+    let roomInstance = await service.baseService.queryById(room, roomId)
+    for(let i = 0; i < roomInstance.count ;i ++){
+      let key = 'v' + (i + 1)
+      if(roomInstance[key] === username){
+        let update = {}
+        update[key] = null // 清空操作-对应位置重置为null
+        await service.baseService.updateById(room, roomInstance._id, update)
+      }
+    }
+    return $helper.wrapResult(true, 'ok')
+  }
+
 }
 module.exports = roomService;

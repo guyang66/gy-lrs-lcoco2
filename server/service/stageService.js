@@ -7,17 +7,17 @@ class stageService extends BaseClass{
    */
   async predictorStage(id) {
     const { service, app } = this
-    const { $helper, $model, $support } = app
+    const { $helper, $model, $support, $enums } = app
     const { game, player, action, record } = $model
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)
     }
     let gameInstance = await service.baseService.queryById(game, id)
     // 查找当天晚上的查验action
-    let checkAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: 1, action: 'check'})
+    let checkAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: $enums.GAME_STAGE.PREDICTOR_STAGE, action: $enums.SKILL_ACTION_KEY.CHECK})
     if(!checkAction) {
       // 空过
-      let predictorPlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, role: 'predictor'})
+      let predictorPlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, role: $enums.GAME_ROLE.PREDICTOR})
       let recordObject = {
         roomId: gameInstance.roomId,
         gameId: gameInstance._id,
@@ -31,7 +31,7 @@ class stageService extends BaseClass{
           key: 'jump',
           text: $support.getPlayerFullName(predictorPlayer) + '，预言家空验',
           actionName: '空验',
-          level: 6,
+          level: $enums.TEXT_COLOR.ORANGE,
           from: {
             username: predictorPlayer.username,
             name: predictorPlayer.name,
@@ -58,14 +58,14 @@ class stageService extends BaseClass{
    */
   async wolfStage(id) {
     const { service, app} = this
-    const { $helper, $model, $support } = app
+    const { $helper, $model, $support, $enums } = app
 
     const { game, player, action, record } = $model
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)
     }
     let gameInstance = await service.baseService.queryById(game, id)
-    let assaultActionList = await service.baseService.query(action, {roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, stage: 2, action: 'assault'})
+    let assaultActionList = await service.baseService.query(action, {roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, stage: $enums.GAME_STAGE.WOLF_STAGE, action: $enums.SKILL_ACTION_KEY.ASSAULT})
     if(!assaultActionList || assaultActionList.length < 1){
       let recordObject = {
         roomId: gameInstance.roomId,
@@ -80,7 +80,7 @@ class stageService extends BaseClass{
           key: 'jump',
           text: '狼人空刀',
           actionName: '空刀',
-          level: 5,
+          level: $enums.TEXT_COLOR.PINK,
           from: {
             username: null,
             name: '狼人',
@@ -110,9 +110,9 @@ class stageService extends BaseClass{
       gameId: gameInstance._id,
       day: gameInstance.day,
       stage: gameInstance.stage,
-      from: 'wolf',
+      from: $enums.GAME_ROLE.WOLF,
       to: target,
-      action: 'kill',
+      action: $enums.SKILL_ACTION_KEY.KILL,
     }
     await service.baseService.save(action, actionObject)
     let diePlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, username: target})
@@ -127,15 +127,15 @@ class stageService extends BaseClass{
       content: {
         text: '狼人今晚袭击了：' + $support.getPlayerFullName(diePlayer),
         type: 'action',
-        key: 'kill',
+        key: $enums.SKILL_ACTION_KEY.KILL,
         actionName: '袭击',
-        level: 2,
+        level: $enums.TEXT_COLOR.RED,
         from: {
           username: null,
           name: '狼人',
           position: null,
-          role: 'wolf',
-          camp: 0,
+          role: $enums.GAME_ROLE.WOLF,
+          camp: $enums.GAME_CAMP.WOLF,
         },
         to: {
           username: diePlayer.username,
@@ -157,7 +157,7 @@ class stageService extends BaseClass{
    */
   async witchStage (id) {
     const { service, app} = this
-    const { $helper, $model, $support } = app
+    const { $helper, $model, $support, $enums } = app
 
     const { game, player, action, record, gameTag } = $model
     if(!id){
@@ -165,8 +165,8 @@ class stageService extends BaseClass{
     }
     let gameInstance = await service.baseService.queryById(game, id)
     // 女巫回合 => 天亮了, 需要结算死亡玩家和游戏是否结束
-    let killAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: 2, action: 'kill'})
-    let saveAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: 3, action: 'antidote'})
+    let killAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: $enums.GAME_STAGE.WOLF_STAGE, action: $enums.SKILL_ACTION_KEY.KILL})
+    let saveAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: $enums.GAME_STAGE.WITCH_STAGE, action: $enums.SKILL_ACTION_KEY.ANTIDOTE})
     if(killAction && killAction.to){
       let killTarget = killAction.to
       let killPlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, username: killTarget})
@@ -186,13 +186,13 @@ class stageService extends BaseClass{
         }
         await service.baseService.save(gameTag, tagObject)
         // 注册该玩家的死亡
-        await service.baseService.updateOne(player,{ roomId: gameInstance.roomId, gameId: gameInstance._id, username: killPlayer.username}, { status: 0 , outReason: 'assault'})
-        if(killPlayer.role === 'hunter'){
+        await service.baseService.updateOne(player,{ roomId: gameInstance.roomId, gameId: gameInstance._id, username: killPlayer.username}, { status: $enums.PLAYER_STATUS.DEAD , outReason: 'assault'})
+        if(killPlayer.role === $enums.GAME_ROLE.HUNTER){
           // 修改它的技能状态
           let skills = killPlayer.skill
           let newSkillStatus = []
           skills.forEach(item=>{
-            if(item.key === 'shoot'){
+            if(item.key === $enums.SKILL_ACTION_KEY.SHOOT){
               newSkillStatus.push({
                 name: item.name,
                 key: item.key,
@@ -212,7 +212,7 @@ class stageService extends BaseClass{
 
     // 结算女巫毒
     // 注意：不能在女巫用毒后就注册玩家的死亡，会造成还在女巫回合，就能看到谁已经死亡了(这样就知道死亡的玩家是被毒死，信息被泄露)，需要滞后到下一阶段
-    let poisonAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: 3, action: 'poison'})
+    let poisonAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage:  $enums.GAME_STAGE.WITCH_STAGE, action:  $enums.SKILL_ACTION_KEY.POISON})
     if(poisonAction && poisonAction.to){
       let poisonPlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, username: poisonAction.to})
       let witchPlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, username: poisonAction.from})
@@ -231,7 +231,7 @@ class stageService extends BaseClass{
           key: 'poison',
           text: $support.getPlayerFullName(witchPlayer) + '使用毒药毒死了' + $support.getPlayerFullName(poisonPlayer),
           actionName: '毒药',
-          level: 2,
+          level: $enums.TEXT_COLOR.RED,
           from: {
             username: witchPlayer.username,
             name: witchPlayer.name,
@@ -267,13 +267,13 @@ class stageService extends BaseClass{
 
     if(!saveAction && !poisonAction){
       // 空过,找女巫
-      let witchPlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, role: 'witch'})
+      let witchPlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, role: $enums.GAME_ROLE.WITCH})
 
       // 查女巫的技能
       let skill = witchPlayer.skill
       let has = false
       skill.forEach(item=>{
-        if(item.status === 1){
+        if(item.status === $enums.SKILL_STATUS.AVAILABLE){
           has = true
         }
       })
@@ -290,7 +290,7 @@ class stageService extends BaseClass{
           key: 'jump',
           text: $support.getPlayerFullName(witchPlayer) + '，女巫空过',
           actionName: has ? '空过' : '药已用完',
-          level: 5,
+          level: $enums.TEXT_COLOR.PINK,
           from: {
             username: witchPlayer.username,
             name: witchPlayer.name,
@@ -316,7 +316,7 @@ class stageService extends BaseClass{
       content: {
         text: '天亮了！',
         type: 'text',
-        level: 4,
+        level: $enums.TEXT_COLOR.BLUE,
       },
       isCommon: 1,
       isTitle: 0
@@ -324,7 +324,7 @@ class stageService extends BaseClass{
     await service.baseService.save(record, gameRecord)
 
     // 结算所有的死亡玩家
-    let diePlayerList = await service.baseService.query(gameTag,{roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, stage:{ $in: [2, 3]}, mode: 1})
+    let diePlayerList = await service.baseService.query(gameTag,{roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, stage:{ $in: [$enums.STAGE_MAP.WOLF_STAGE, $enums.STAGE_MAP.WITCH_STAGE]}, mode: 1})
     if(!diePlayerList || diePlayerList.length < 1){
       let peaceRecord = {
         roomId: gameInstance.roomId,
@@ -337,7 +337,7 @@ class stageService extends BaseClass{
         content: {
           type: 'text',
           text: '昨天晚上是平安夜!',
-          level: 3,
+          level: $enums.TEXT_COLOR.GREEN,
         }
       }
       await service.baseService.save(record, peaceRecord)
@@ -360,7 +360,7 @@ class stageService extends BaseClass{
             type: 'action',
             action: 'die',
             actionName: '死亡',
-            level: 2,
+            level: $enums.TEXT_COLOR.RED,
             from: {
               username: diePlayer.username,
               name: diePlayer.name,
@@ -388,14 +388,14 @@ class stageService extends BaseClass{
    */
   async preSpeakStage (id) {
     const { service, app } = this
-    const { $helper, $model, $support } = app
+    const { $helper, $model, $support, $enums } = app
     const { game, player, record, gameTag } = $model
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)
     }
     let gameInstance = await service.baseService.queryById(game, id)
     // 从存活的玩家中随机抽取一位玩家座位第一位发言
-    let alivePlayer = await service.baseService.query(player, {gameId: gameInstance._id, roomId: gameInstance.roomId, status: 1})
+    let alivePlayer = await service.baseService.query(player, {gameId: gameInstance._id, roomId: gameInstance.roomId, status: $enums.PLAYER_STATUS.ALIVE})
     let randomPosition = Math.floor(Math.random() * alivePlayer.length )
     let randomOrder = Math.floor(Math.random() * 2 ) + 1 // 随机发言顺序
     let targetPlayer = alivePlayer[randomPosition]
@@ -426,19 +426,19 @@ class stageService extends BaseClass{
         content: [
           {
             text: '进入投票环节，由',
-            level: 1,
+            level: $enums.TEXT_COLOR.BLACK,
           },
           {
             text: $support.getPlayerFullName(targetPlayer),
-            level: 4,
+            level: $enums.TEXT_COLOR.BLUE,
           },
           {
             text: '开始发言。顺序为：',
-            level: 1,
+            level: $enums.TEXT_COLOR.BLACK,
           },
           {
             text: randomOrder === 1 ? '正向' : '逆向',
-            level: randomOrder === 1 ? 3 : 2,
+            level: randomOrder === 1 ? $enums.TEXT_COLOR.GREEN : $enums.TEXT_COLOR.RED,
           }
         ]
       }
@@ -453,7 +453,7 @@ class stageService extends BaseClass{
    */
   async voteStage (id, stageNumber = 6) {
     const { service, app} = this
-    const { $helper, $model, $support, $nodeCache, $enums } = app
+    const { $helper, $model, $support, $enums } = app
     const { game, player, record, action, gameTag } = $model
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)
@@ -461,8 +461,8 @@ class stageService extends BaseClass{
     let gameInstance = await service.baseService.queryById(game, id)
 
     let needPk
-    let voteActions = await service.baseService.query(action, {roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, stage: stageNumber, action: 'vote'})
-    let alivePlayers = await service.baseService.query(player,{gameId: gameInstance._id, roomId: gameInstance.roomId, status: 1},{}, {sort: { position: 1 }})
+    let voteActions = await service.baseService.query(action, {roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, stage: stageNumber, action: $enums.SKILL_ACTION_KEY.VOTE})
+    let alivePlayers = await service.baseService.query(player,{gameId: gameInstance._id, roomId: gameInstance.roomId, status: $enums.PLAYER_STATUS.ALIVE},{}, {sort: { position: 1 }})
 
     if(stageNumber === 6.5 && gameInstance.flatTicket === 2){
       let pkTag = await service.baseService.queryOne(gameTag, {
@@ -535,7 +535,7 @@ class stageService extends BaseClass{
           actionName: '投票',
           text: voteResultString,
           action: 'vote',
-          level: 4,
+          level: $enums.TEXT_COLOR.BLUE,
           from: {
             username: null,
             name: votePlayerString,
@@ -578,7 +578,7 @@ class stageService extends BaseClass{
           actionName: '弃票',
           text: abstainedString + '弃票',
           action: 'abstained',
-          level: 5,
+          level: $enums.TEXT_COLOR.PINK,
           from: {name: abstainedString},
           to: {
             name: '弃票',
@@ -601,7 +601,7 @@ class stageService extends BaseClass{
         content: {
           text: '所有人弃票，没有玩家出局',
           type: 'text',
-          level: 2,
+          level: $enums.TEXT_COLOR.RED,
         }
       }
       await service.baseService.save(record, recordObject)
@@ -623,7 +623,7 @@ class stageService extends BaseClass{
           content: {
             text: '所有人弃票，没有玩家出局',
             type: 'text',
-            level: 2,
+            level: $enums.TEXT_COLOR.RED,
           }
         }
         await service.baseService.save(record, recordObject)
@@ -643,7 +643,7 @@ class stageService extends BaseClass{
             actionName: '放逐',
             action: 'out',
             text: $support.getPlayerFullName(votePlayer) + '获得最高票数，出局！',
-            level: 2,
+            level: $enums.TEXT_COLOR.RED,
             from: {
               name: votePlayer.name,
               username: votePlayer.username,
@@ -674,12 +674,12 @@ class stageService extends BaseClass{
         }
         await service.baseService.save(gameTag, tagObject)
         await service.baseService.updateById(player, votePlayer._id,{status: 0, outReason: $enums.GAME_OUT_REASON.VOTE})
-        if(votePlayer.role === 'hunter'){
+        if(votePlayer.role === $enums.GAME_ROLE.HUNTER){
           // 修改猎人的技能状态
           let skills = votePlayer.skill
           let newSkillStatus = []
           skills.forEach(item=>{
-            if(item.key === 'shoot'){
+            if(item.key === $enums.SKILL_ACTION_KEY.SHOOT){
               newSkillStatus.push({
                 name: item.name,
                 key: item.key,
@@ -707,11 +707,11 @@ class stageService extends BaseClass{
             content: [
               {
                 text: '平票',
-                level: 2,
+                level: $enums.TEXT_COLOR.RED,
               },
               {
                 text: '，没有玩家出局',
-                level: 1,
+                level: $enums.TEXT_COLOR.BLACK,
               }
             ]
           }
@@ -719,7 +719,7 @@ class stageService extends BaseClass{
         await service.baseService.save(record, recordObject)
 
         // 需要pk的逻辑
-        if(gameInstance.flatTicket === 2 && stageNumber === 6){
+        if(gameInstance.flatTicket === $enums.GAME_TICKET_FLAT.NEED_PK && stageNumber === 6){
           // 平票加赛的处理
           let num = Math.floor(Math.random() * maxCount.length)
           let randomOrder = Math.floor(Math.random() * 2 ) + 1 // 1到2的随机数
@@ -760,39 +760,39 @@ class stageService extends BaseClass{
               content: [
                 {
                   text: '进入',
-                  level: 1,
+                  level: $enums.TEXT_COLOR.BLACK,
                 },
                 {
                   text: '加赛pk',
-                  level: 2,
+                  level: $enums.TEXT_COLOR.RED,
                 },
                 {
                   text: '环节，',
-                  level: 1,
+                  level: $enums.TEXT_COLOR.BLACK,
                 },
                 {
                   text: pkPlayerString,
-                  level: 3,
+                  level: $enums.TEXT_COLOR.GREEN,
                 },
                 {
                   text: '进行pk',
-                  level: 2,
+                  level: $enums.TEXT_COLOR.RED,
                 },
                 {
                   text: '，由',
-                  level: 1,
+                  level: $enums.TEXT_COLOR.BLACK,
                 },
                 {
                   text: $support.getPlayerFullName(targetPlayer),
-                  level: 4,
+                  level: $enums.TEXT_COLOR.BLUE,
                 },
                 {
                   text: '先开始发言。顺序为：',
-                  level: 1,
+                  level: $enums.TEXT_COLOR.BLACK,
                 },
                 {
                   text: randomOrder === 1 ? '正向' : '逆向',
-                  level: randomOrder === 1 ? 3 : 2,
+                  level: randomOrder === 1 ? $enums.TEXT_COLOR.GREEN : $enums.TEXT_COLOR.RED,
                 }
               ]
             }

@@ -56,16 +56,11 @@ class roomController extends BaseClass {
 
     // 判断当前用户是否已经入座
     let isSeat = await service.roomService.findInSeatPlayer(id, username)
-    if(!isOb && !isSeat.result){
-      // 如果不在座位上，则查询是否在等待区
-      let exist = waitPlayer.find(p=>{
-        return p === username
-      })
-      if(!exist){
-        // 不在座位上，也不在等待区，可能是通过url直接访问的，
-        ctx.body = $helper.Result.fail(-1, '你不在该房间内，请先返回首页，重新加入房间！')
-        return
-      }
+
+    // 不是观战者，并且未入座，也不在等待区，则是无效玩家
+    if(!isOb && !isSeat.result && !$helper.hasElement(waitPlayer, username)){
+      ctx.body = $helper.Result.fail(-1, '你不在该房间内，请先返回首页，重新加入房间！')
+      return
     }
 
     let waitPlayerArray = []
@@ -80,33 +75,27 @@ class roomController extends BaseClass {
       }
     }
 
-    let r = await service.roomService.getRoomSeatPlayer(id)
-    if(!r.result){
-      ctx.body = $helper.Result.fail(r.errorCode, r.errorMessage)
+    let seatPlayerInfo = await service.roomService.getRoomSeatPlayer(id)
+    if(!seatPlayerInfo.result){
+      ctx.body = $helper.Result.fail(seatPlayerInfo.errorCode, seatPlayerInfo.errorMessage)
       return
     }
-    let seatInfo = r.data
-    let seatStatus = 1
-    seatInfo.forEach(item=>{
-      if(!item.player){
-        seatStatus = 0 // 座位未坐满人
-      }
-    })
 
+    // 前端需要这些信息来渲染视图，不同的状态对应不同的前端显示
     let info = {
-      waitPlayer: waitPlayerArray,
-      wait: roomInstance.wait,
+      waitPlayer: waitPlayerArray, // 等待区的玩家名字
+      wait: roomInstance.wait, // 等待区的玩家id
       _id: roomInstance._id,
-      name: roomInstance.name,
-      password: roomInstance.password,
+      name: roomInstance.name, // 房间名称
+      password: roomInstance.password, // 房间密码
       status: roomInstance.status, // 游戏状态
-      seat: seatInfo, // 座位信息
-      seatStatus: seatStatus, // 是否已做满  0：未坐满（不能开始游戏）1：已坐满（可开始游戏）
-      seatStatusString: seatStatus === 0 ? '未坐满' : '已坐满',
+      seat: seatPlayerInfo.data.content, // 座位信息
+      seatStatus: seatPlayerInfo.data.isFull, // 是否已坐满
+      seatStatusString: seatPlayerInfo.data.statusString,
       gameId: roomInstance.gameId,
-      mode: roomInstance.mode,
+      mode: roomInstance.mode, // 板子
       modeName: $constants.MODE[roomInstance.mode] ? $constants.MODE[roomInstance.mode].name : '未知板子',
-      playerCount: roomInstance.count
+      playerCount: roomInstance.count // 玩家个数
     }
     ctx.body = $helper.Result.success(info)
   }
@@ -131,22 +120,17 @@ class roomController extends BaseClass {
       return
     }
     let currentUser = await service.baseService.userInfo()
-    let username = currentUser.username
 
     // 查看当前用户是否在座位上
-    let isSeat = await service.roomService.findInSeatPlayer(roomInstance._id, username)
+    let isSeat = await service.roomService.findInSeatPlayer(roomInstance._id, currentUser.username)
     if(isSeat.result) {
-      // 在座位上且游戏在进行中，则回复游戏状态即可。
+      // 在座位上且游戏在进行中，则恢复游戏状态即可（即前端正常渲染）
       ctx.body = $helper.Result.success(roomInstance._id)
       return
     }
 
-    let waitPlayer = roomInstance.wait
-    let exist = waitPlayer.find(p=>{
-      return p === username
-    })
-    if(!exist){
-      let newWait = [...waitPlayer]
+    if(!$helper.hasElement(roomInstance.wait, currentUser.username)){
+      let newWait = [...roomInstance.wait]
       newWait.push(currentUser.username)
       await service.baseService.updateById(room, roomInstance._id, {wait: newWait})
     }
@@ -175,7 +159,7 @@ class roomController extends BaseClass {
    */
   async quitRoom () {
     const { ctx, service, app } = this
-    const { $helper, $model, $ws, $enums, $constants } = app
+    const { $helper, $model, $ws, $enums } = app
     const { room } = $model
     const { id, username } = ctx.query
     if(!id || id === ''){
@@ -187,7 +171,6 @@ class roomController extends BaseClass {
       return
     }
     let currentUser = await service.baseService.userInfo()
-    console.log(currentUser.username, username)
     if(currentUser.username !== username){
       ctx.body = $helper.Result.fail(-1,'你不能操作别人账号退出房间！')
       return
@@ -199,23 +182,8 @@ class roomController extends BaseClass {
       ctx.body = $helper.Result.success(-1, '退出房间成功！')
       return
     }
-    // 清除座位上的人
-    const seatUpdate = (key) => {
-      if(roomInstance[key] === username){
-        // 需要被更新
-        let obj = {}
-        obj[key] = null
-        return obj
-      }
-      return false
-    }
-    let seatCount = roomInstance.count
-    for(let i = 0; i < seatCount ;i ++){
-      let t = seatUpdate('v' + (i + 1))
-      if(t){
-        await service.baseService.updateById(room, roomInstance._id, t)
-      }
-    }
+
+    await service.roomService.clearSeat(roomInstance._id, username)
 
     // 清空等待区的人
     let waitPlayer = roomInstance.wait
@@ -225,6 +193,7 @@ class roomController extends BaseClass {
         newWaitPlayer.push(waitPlayer[i])
       }
     }
+
     await service.baseService.updateById(room, id, { wait: newWaitPlayer})
     $ws.connections.forEach(function (conn) {
       let url = '/lrs/' + roomInstance._id
@@ -259,7 +228,6 @@ class roomController extends BaseClass {
       ctx.body = $helper.Result.fail(-1,'你不能修改别人的信息')
       return
     }
-
     await service.baseService.updateById(user, id, {name: name})
     $ws.connections.forEach(function (conn) {
       let url = '/lrs/' + roomInstance._id
@@ -324,9 +292,8 @@ class roomController extends BaseClass {
     }
     let roomInstance = await service.baseService.queryById(room, id)
     let currentUser = await service.baseService.userInfo()
-    let username = currentUser.username
     let seatValue = roomInstance['v' + position]
-    if(seatValue === username){
+    if(seatValue === currentUser.username){
       // 当前位置坐的就是本人,不用处理
       ctx.body = $helper.Result.success('入座成功')
       return
@@ -337,49 +304,33 @@ class roomController extends BaseClass {
     }
 
     // 判断是否已经入座
-    let isSeat =  await service.roomService.findInSeatPlayer(id, username)
+    let isSeat =  await service.roomService.findInSeatPlayer(id, currentUser.username)
     let waitPlayer = roomInstance.wait
     if(!isSeat.result){
-      let exist = waitPlayer.find(p=>{
-        return p === username
-      })
       // 未入座，但是等待区也没
-      if(!exist){
+      if(!$helper.hasElement(waitPlayer, currentUser.username)){
         ctx.body = $helper.Result.fail(-1,'您不在等待区，请退出房间，重新加入该房间！')
         return
       }
     } else {
       // 已经入座了，入座前需要退出座位（即换座位）
-      const seatUpdate = (key) => {
-        if(roomInstance[key] === username){
-          // 需要被更新
-          let obj = {}
-          obj[key] = null
-          return obj
-        }
-        return false
-      }
-      for(let i =0; i < 9 ;i ++){
-        let t = seatUpdate('v' + (i + 1))
-        if(t){
-          await service.baseService.updateById(room, roomInstance._id, t)
-        }
-      }
+      await service.roomService.clearSeat(roomInstance._id, currentUser.username)
     }
 
     // 准备入座
     let updateObj = {}
-    updateObj['v' + position] = username
+    updateObj['v' + position] = currentUser.username
     await service.baseService.updateById(room, id, updateObj)
 
     // 清掉等待区的当前user
     let newWaitPlayer = []
     for(let i = 0; i < waitPlayer.length; i++){
-      if(waitPlayer[i] !== username){
+      if(waitPlayer[i] !== currentUser.username){
         newWaitPlayer.push(waitPlayer[i])
       }
     }
     await service.baseService.updateById(room, id, { wait: newWaitPlayer})
+
     $ws.connections.forEach(function (conn) {
       let url = '/lrs/' + roomInstance._id
       if(conn.path === url){
@@ -461,7 +412,6 @@ class roomController extends BaseClass {
       }
     }
     update.wait = roomInstance.wait.concat(newWaitPlayer)
-
     await service.baseService.updateById(room, roomInstance._id, update)
     $ws.connections.forEach(function (conn) {
       let url = '/lrs/' + roomInstance._id

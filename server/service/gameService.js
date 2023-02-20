@@ -8,7 +8,7 @@ class gameService extends BaseClass{
     const { service, app } = this
     const { $helper, $model, $constants, $support, $enums } = app
     const { game, player, user, vision, gameTag, room } = $model
-    const { playerRoleMap } = $constants
+    const { PLAYER_ROLE_MAP } = $constants
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)
     }
@@ -52,7 +52,7 @@ class gameService extends BaseClass{
           campName: otherPlayer.camp === $enums.GAME_CAMP.CLERIC_AND_VILLAGER ? '好人阵营' : '狼人阵营', // 是否知晓阵营
           status: otherPlayer.status, // 是否死亡
           role: otherPlayer.role, // 是否知晓角色
-          roleName: playerRoleMap[otherPlayer.role] ? playerRoleMap[otherPlayer.role].name : '', // 是否知晓角色
+          roleName: PLAYER_ROLE_MAP[otherPlayer.role] ? PLAYER_ROLE_MAP[otherPlayer.role].name : '', // 是否知晓角色
           position: otherPlayer.position,
           isTarget: getTarget(otherPlayer.username) // 是否可以被触发动作（比如投票不是pk台上的玩家不能被投票，比如守卫第二晚不能守护同一个人）
         })
@@ -70,7 +70,7 @@ class gameService extends BaseClass{
         campName: visionInstance.status === $enums.VISION_STATUS.UNKNOWN ? null : (otherPlayer.camp === $enums.GAME_CAMP.CLERIC_AND_VILLAGER ? '好人阵营' : '狼人阵营'),
         status: otherPlayer.status, // 是否死亡
         role: visionInstance.status === $enums.VISION_STATUS.KNOWN_ROLE ? otherPlayer.role : null, // 是否知晓角色
-        roleName: visionInstance.status === $enums.VISION_STATUS.KNOWN_ROLE ? (playerRoleMap[otherPlayer.role] ? playerRoleMap[otherPlayer.role].name : '') : null,
+        roleName: visionInstance.status === $enums.VISION_STATUS.KNOWN_ROLE ? (PLAYER_ROLE_MAP[otherPlayer.role] ? PLAYER_ROLE_MAP[otherPlayer.role].name : '') : null,
         position: otherPlayer.position,
         isTarget: getTarget(otherPlayer.username) // 是否可以被触发动作（比如投票不是pk台上的玩家不能被投票，比如守卫第二晚不能守护同一个人）
       })

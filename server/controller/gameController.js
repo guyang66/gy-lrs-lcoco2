@@ -1,5 +1,4 @@
 const BaseClass = require('../base/BaseClass')
-const Stack = require('../base/StackClass')
 class gameController extends BaseClass {
   /**
    * 开始游戏
@@ -9,7 +8,7 @@ class gameController extends BaseClass {
     const { service, ctx, app } = this
     const { $helper, $model, $constants, $support, $ws, $enums, $nodeCache } = app
     const { room, game, user, player, vision, record } = $model
-    const { skillMap } = $constants
+    const { SKILL_MAP } = $constants
     let { id, setting } = ctx.request.body
     if(!id || id === ''){
       ctx.body = $helper.Result.fail(-1,'roomId不能为空！')
@@ -29,19 +28,12 @@ class gameController extends BaseClass {
       return
     }
 
-    let r = await service.roomService.getRoomSeatPlayer(id)
-    if(!r.result){
-      ctx.body = $helper.Result.fail(r.errorCode, r.errorMessage)
+    let seatPlayerInfo = await service.roomService.getRoomSeatPlayer(id)
+    if(!seatPlayerInfo.result){
+      ctx.body = $helper.Result.fail(seatPlayerInfo.errorCode, seatPlayerInfo.errorMessage)
       return
     }
-    let seatInfo = r.data
-    let isFull = true // 座位是否坐满人
-    seatInfo.forEach(item=>{
-      if(!item.player){
-        isFull = false
-      }
-    })
-    if(!isFull){
+    if(!seatPlayerInfo.data.isFull){
       ctx.body = $helper.Result.fail(-1,'座位未坐满，不满足游戏开始条件！')
       return
     }
@@ -104,7 +96,7 @@ class gameController extends BaseClass {
         role: item.role,
         camp: item.role === $enums.GAME_ROLE.WOLF ? $enums.GAME_CAMP.WOLF : $enums.GAME_CAMP.CLERIC_AND_VILLAGER, // 狼人阵营 ：0 ； 好人阵营：1
         status: $enums.PLAYER_STATUS.ALIVE, // 都是存活状态
-        skill: skillMap[item.role],
+        skill: SKILL_MAP[item.role],
         position: item.number
       }
       // 依次同步创建9个玩家
@@ -173,7 +165,7 @@ class gameController extends BaseClass {
     const { service, ctx, app } = this
     const { $helper, $model, $constants, $support } = app
     const { game, player, room } = $model
-    const { playerRoleMap, stageMap } = $constants
+    const { PLAYER_ROLE_MAP, STAGE_MAP } = $constants
     const { id } = ctx.query
     if(!id || id === ''){
       ctx.body = $helper.Result.fail(-1,'gameId不能为空！')
@@ -235,11 +227,11 @@ class gameController extends BaseClass {
       status: gameInstance.status,
       day: gameInstance.day,
       stage: gameInstance.stage,
-      stageName: stageMap[gameInstance.stage] ? stageMap[gameInstance.stage].name : '未知',
+      stageName: STAGE_MAP[gameInstance.stage] ? STAGE_MAP[gameInstance.stage].name : '未知',
       dayTag: gameInstance.stage < 4 ? '晚上' : '白天',
       roleInfo: isOb ? {} : {
         role: currentPlayer.role,
-        roleName: (playerRoleMap[currentPlayer.role] ? playerRoleMap[currentPlayer.role].name : ''),
+        roleName: (PLAYER_ROLE_MAP[currentPlayer.role] ? PLAYER_ROLE_MAP[currentPlayer.role].name : ''),
         skill: currentPlayer.skill,
         username: currentPlayer.username,
         name: currentUser.name,

@@ -279,6 +279,18 @@ module.exports = app => ({
       }
     }
     return ans
+  },
+
+  /**
+   * 是否含有该元素
+   */
+  hasElement (array, target) {
+    if(!array || array.length < 1 || !target || target === ''){
+      return false
+    }
+    return array.find(item=>{
+      return item === target
+    })
   }
 
 })
