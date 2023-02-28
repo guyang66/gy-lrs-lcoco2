@@ -42,6 +42,14 @@ export default {
     })
   },
 
+  defendPlayer (params) {
+    return fetch({
+      url: urlPrefix + 'game/defendPlayer/auth',
+      method: 'get',
+      params,
+    })
+  },
+
   assaultPlayer (params) {
     return fetch({
       url: urlPrefix + 'game/assaultPlayer/auth',
@@ -121,4 +129,12 @@ export default {
       params,
     })
   },
+
+  getGameSettings(params) {
+    return fetch({
+      url: urlPrefix + 'game/settings/auth',
+      method: 'get',
+      params,
+    })
+  }
 }

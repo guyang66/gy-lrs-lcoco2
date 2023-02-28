@@ -27,13 +27,14 @@ module.exports = app => ({
   },
 
   getVisionKey (from, to) {
+    const { $enums } = app
     if(from.number === to.number){
       // 自己对自己的视野为全知
       return 2
     }
     let fromRole = from.role
     let toRole = to.role
-    if(fromRole === 'wolf' && toRole === 'wolf'){
+    if(fromRole === $enums.GAME_ROLE.WOLF && toRole === $enums.GAME_ROLE.WOLF){
       // 狼人拥有对同伴的完全视野
       return 2
     }
@@ -43,9 +44,10 @@ module.exports = app => ({
   },
 
   getGameWinner (gameInstance) {
+    const { $enums } = app
     let winner
     if(gameInstance.winner !== null && gameInstance.winner !== undefined){
-      winner = gameInstance.winner === 1 ? '好人阵营' : '狼人阵营'
+      winner = gameInstance.winner === $enums.GAME_CAMP.WOLF ? '狼人阵营' : '好人阵营'
     }
     return  winner ? '胜利者为：' + winner : ''
   },
@@ -77,5 +79,55 @@ module.exports = app => ({
       return new Stack()
     }
     return new Stack(gameInstance.stageStack)
+  },
+
+  /**
+   * 获取白天还是黑夜
+   * @param stage
+   * @param useString
+   * @returns {string|string|*}
+   */
+  getDayAndNightString (stage, useString = false) {
+    const { $constants, $enums } = app
+    const { STAGE_MAP } = $constants
+    if(stage === undefined || stage === null || stage === ''){
+      return ''
+    }
+    let target = STAGE_MAP[stage]
+    if(!target){
+      return ''
+    }
+    if(useString){
+      return target.day === $enums.GAME_DAY_NIGHT.IS_NIGHT ? '晚上' : '白天'
+    }
+    return target.day
+  },
+
+  /**
+   * 根据角色获取对应阵营
+   * @param role
+   * @param useString
+   * @returns {null|*}
+   */
+  getCampByRole (role, useString = false) {
+    const { $constants } = app
+    const { PLAYER_ROLE_MAP } = $constants
+    if(!role){
+      return null
+    }
+    let target = PLAYER_ROLE_MAP[role]
+    if(!target){
+      return null
+    }
+    return useString ? target.campString : target.camp
+  },
+
+  getSkillByKey (key, skills) {
+    if(!key || key === ''){
+      return null
+    }
+    return skills.find(item=>{
+      return item.key === key
+    })
   }
 })

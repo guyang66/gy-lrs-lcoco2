@@ -7,6 +7,8 @@ import witchIcon from "@assets/images/role/icon/nw.png"
 import hunterIcon from "@assets/images/role/icon/lr.png"
 import villagerIcon from "@assets/images/role/icon/pm.png"
 import wolfIcon from "@assets/images/role/icon/langr.png"
+import guardIcon from "@assets/images/role/icon/sw.png"
+
 import exileIcon from "@assets/images/exile.svg"
 import outIcon from "@assets/images/dead.svg"
 import boomIcon from "@assets/images/boom.svg"
@@ -26,6 +28,7 @@ const Record = (props) => {
     'wolf': wolfIcon,
     'witch': witchIcon,
     'hunter': hunterIcon,
+    'guard': guardIcon,
     'exile': exileIcon,
     'boom': boomIcon,
     'out': outIcon

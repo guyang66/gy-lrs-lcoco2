@@ -195,25 +195,23 @@ module.exports = app => ({
 
   /**
    * 获取随机不重复的玩家数组（整数数组）
-   * @param min
-   * @param max
-   * @param length
    * @param roleArray
    * @returns {this}
    */
-  getRandomNumberArray (min, max, length = 9, roleArray) {
+  getRandomNumberArray (roleArray) {
+    let l = roleArray.length
     let arr = []
     let map = {}
     const newNum = () => {
-      let num = Math.floor(Math.random() * 9 ) + 1
+      let num
       do {
-        num = Math.floor(Math.random() * 9 ) + 1
+        num = Math.floor(Math.random() * l ) + 1
       }
       while (map[num])
       return num
     }
 
-    for(let i = 0 ;i < length ;i++) {
+    for(let i = 0 ;i < l ;i++) {
       let num = newNum()
       if(-1 === arr.indexOf(num)){
         arr.push({

@@ -33,11 +33,13 @@ module.exports = app => {
   router.get('/api/game/userNextStage/auth', $middleware.auth, controller.gameController.nextStage)
   router.get('/api/game/record/auth', $middleware.auth, controller.gameController.commonGameRecord)
   router.get('/api/game/checkPlayer/auth', $middleware.auth, controller.gameController.checkPlayer)
+  router.get('/api/game/defendPlayer/auth', $middleware.auth, controller.gameController.defendPlayer)
   router.get('/api/game/assaultPlayer/auth', $middleware.auth, controller.gameController.assaultPlayer)
   router.get('/api/game/antidotePlayer/auth', $middleware.auth, controller.gameController.antidotePlayer)
   router.get('/api/game/votePlayer/auth', $middleware.auth, controller.gameController.votePlayer)
   router.get('/api/game/poisonPlayer/auth', $middleware.auth, controller.gameController.poisonPlayer)
   router.get('/api/game/shootPlayer/auth', $middleware.auth, controller.gameController.shootPlayer)
   router.get('/api/game/boomPlayer/auth', $middleware.auth, controller.gameController.boomPlayer)
+  router.get('/api/game/settings/auth', $middleware.auth, controller.gameController.gameSettings)
 
 }

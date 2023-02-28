@@ -3,6 +3,7 @@ import hunter from "@assets/images/role/card/lieren.png"
 import witch from "@assets/images/role/card/nvwu.png"
 import villager from "@assets/images/role/card/pingming.png"
 import wolf from "@assets/images/role/card/langren.png"
+import guard from "@assets/images/role/card/shouwei.png"
 
 const roleCardMap = {
   'predictor': predictor,
@@ -10,6 +11,7 @@ const roleCardMap = {
   'witch': witch,
   'villager': villager,
   'wolf': wolf,
+  'guard': guard
 }
 
 const modalDescMap = {
@@ -52,6 +54,14 @@ const modalDescMap = {
     resultDesc: '你投票放逐了',
     confirm: '确定投票放逐该玩家吗？'
   },
+  'defend': {
+    title: '选择守护一位玩家',
+    className: 'btn-primary',
+    buttonText: '守护',
+    resultTitle: '守护结果',
+    resultDesc: '你守护了',
+    confirm: '确定守护该玩家吗？'
+  },
   'antidote': {
     confirm: '确定要使用解药救下该玩家吗？',
   },
@@ -68,27 +78,8 @@ const roleMap = {
   'villager': '村民'
 }
 
-const witchSaveOptions = [
-  { label: '均能自救', value: 1 },
-  { label: '首页自救', value: 2 },
-  { label: '不能自救', value: 3 },
-];
-
-const winConditionOptions = [
-  { label: '屠边', value: 1 },
-  { label: '屠城', value: 2 },
-];
-
-const flatTicketOptions = [
-  { label: '直接进入夜晚', value: 1 },
-  { label: '加赛pk一轮', value: 2 },
-]
-
 export default {
   roleMap,
   roleCardMap,
   modalDescMap,
-  witchSaveOptions,
-  winConditionOptions,
-  flatTicketOptions
 }

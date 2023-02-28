@@ -19,8 +19,7 @@ const Footer = (props) => {
           <div className="mar-l5">-</div>
           <div className="color-red mar-l5">{gameDetail.dayTag}</div>
           <div className="mar-l5">-</div>
-          <div className="color-main mar-l5">{'第' + (gameDetail.stage + 1) + '阶段'}</div>
-          <div className="color-orange">{'（' + gameDetail.stageName + '）'}</div>
+          <div className="mar-l5 color-orange">{gameDetail.stageName}</div>
           {
             timerTime !== null && timerTime > 0 ? <div className="color-black">行动倒计时：</div> : null
           }
@@ -80,7 +79,8 @@ const Footer = (props) => {
                           'bg-green': item.role === 'villager',
                           'bg-gold': item.role === 'predictor',
                           'bg-purple': item.role === 'witch',
-                          'bg-brown': item.role === 'hunter'
+                          'bg-brown': item.role === 'hunter',
+                          'bg-pink': item.role === 'guard'
                         })}>{item.roleName}</div>
                       ) : null
                     }

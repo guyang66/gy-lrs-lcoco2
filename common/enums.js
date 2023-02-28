@@ -9,9 +9,13 @@ module.exports = {
     FINISHED: 2, // 游戏已结束
     EXCEPTION: 3, // 游戏异常
   },
-  GAME_DAY: {
+  GAME_DAY_ORDER: {
     FIRST_DAY: 1, // 游戏第一天
     SECOND_DAY: 2, // 游戏第二天
+  },
+  GAME_DAY_NIGHT: {
+    IS_NIGHT: 1, // 晚上
+    IS_DAY: 2, // 白天
   },
   GAME_TICKET_FLAT: {
     NO_PK: 1, // 平票不pk，直接进入下一阶段
@@ -41,6 +45,7 @@ module.exports = {
     VOTE_STAGE: 6, // 投票放逐环节
     VOTE_PK_STAGE: 6.5, // 平票pk环节
     EXILE_FINISH_STAGE: 7, // 放逐结束，遗言环节
+    GUARD_STAGE: 8, // 放逐结束，遗言环节
   },
   VISION_STATUS: {
     UNKNOWN: 0, // 未知
@@ -65,6 +70,10 @@ module.exports = {
     POISON: 'poison', // 被毒死
     ASSAULT: 'assault', // 被狼人刀死
     BOOM: 'boom', // 自爆自杀
+  },
+  GAME_RECORD_KEY: {
+    GAME_START: 'game_start', // 游戏开始
+    BEFORE_NIGHT: 'before_night', // 天黑请闭眼
   },
   SKILL_ACTION_KEY: {
     BOOM: 'boom', // 狼人自爆

@@ -82,7 +82,6 @@ const Index = (props) => {
     apiGame.getGameInfo({id: gameId, roomId: roomId}).then(data=>{
       setGameDetail(data)
       setCurrentRole(data.roleInfo || {})
-      console.log(data.playerInfo)
       setPlayerInfo(data.playerInfo || [])
       setSkillInfo(data.skill || [])
       setActionInfo(data.action || [])
@@ -182,7 +181,7 @@ const Index = (props) => {
       return
     }
 
-    if(key === 'assault' || key === 'shoot' || key === 'poison' || key === 'vote'){
+    if(key === 'assault' || key === 'shoot' || key === 'poison' || key === 'vote' || key === 'defend'){
       // 预言家查验, 计算查验数组
       let tmp = []
       playerInfo.forEach(item=>{
@@ -233,6 +232,10 @@ const Index = (props) => {
       'antidote': {
         api: apiGame.antidotePlayer,
         role: 'witch'
+      },
+      'defend': {
+        api: apiGame.defendPlayer,
+        role: 'guard'
       }
     }
 

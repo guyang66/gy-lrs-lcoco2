@@ -5,6 +5,7 @@ import witch from "@assets/images/role/icon/nw.png"
 import hunter from "@assets/images/role/icon/lr.png"
 import villager from "@assets/images/role/icon/pm.png"
 import wolf from "@assets/images/role/icon/langr.png"
+import guard from "@assets/images/role/icon/sw.png"
 
 import check from "@assets/images/role/skill/check.svg"
 import antidote from "@assets/images/role/skill/antidote.svg"
@@ -12,6 +13,8 @@ import boom from "@assets/images/role/skill/boom.svg"
 import poison from "@assets/images/role/skill/poison.svg"
 import shoot from "@assets/images/role/skill/shoot.svg"
 import assault from "@assets/images/role/skill/assault.svg"
+import defend from "@assets/images/role/skill/defend.svg"
+
 import {Button} from "antd";
 
 import cls from "classnames";
@@ -23,7 +26,8 @@ const RoleView = (props) => {
     'predictor': predictor,
     'wolf': wolf,
     'witch': witch,
-    'hunter': hunter
+    'hunter': hunter,
+    'guard': guard,
   }
 
   const skillImgMap = {
@@ -32,7 +36,8 @@ const RoleView = (props) => {
     boom: boom,
     poison: poison,
     shoot: shoot,
-    assault: assault
+    assault: assault,
+    defend: defend
   }
   return (
     <div className="player-role-info-wrap FBH FBAC">
@@ -59,6 +64,7 @@ const RoleView = (props) => {
               'color-gold': currentRole.role === 'predictor',
               'color-purple': currentRole.role === 'witch',
               'color-brown': currentRole.role === 'hunter',
+              'color-pink': currentRole.role === 'guard',
               'normal-text': true
             })}>{currentRole.roleName}</span>
             <span className={cls({
@@ -89,7 +95,7 @@ const RoleView = (props) => {
                                 'skills-btn mar-l10 mar-r10': true,
                                 'btn-error': item.key === 'assault' && item.canUse,
                                 'btn-delete': item.key === 'boom' && item.canUse,
-                                'btn-primary': item.key === 'check' && item.canUse,
+                                'btn-primary': (item.key === 'check' || item.key === 'defend') && item.canUse,
                                 'btn-success': item.key === 'antidote' && item.canUse,
                                 'btn-folk': item.key === 'poison' && item.canUse,
                                 'btn-warning': item.key === 'shoot' && item.canUse,

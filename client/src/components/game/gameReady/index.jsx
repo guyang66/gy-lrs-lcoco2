@@ -9,12 +9,9 @@ import apiGame from '@api/game'
 
 import cls from "classnames";
 import helper from '@helper'
-import constants from "@common/constants";
 
 import {Button, Input, message, Modal, Radio, Space} from "antd";
 import {PlusCircleOutlined, MinusCircleOutlined} from '@ant-design/icons';
-
-const { witchSaveOptions, winConditionOptions, flatTicketOptions } = constants
 
 const Ready = (props) => {
   const { appStore, seat, roomDetail } = props
@@ -28,14 +25,9 @@ const Ready = (props) => {
   const [modeList, setModeList] = useState([])
   const [currentMode, setCurrentMode] = useState('')
 
-  const [gameSetting, setGameSetting] = useState({
-    p1: 30,
-    p2: 45,
-    p3: 30,
-    witchSaveSelf: 2,
-    winCondition: 1, // 屠边
-    flatTicket: 1,
-  })
+  const [gameSettingList, setGameSettingList] = useState([])
+  const [gameConfigOptions, setGameConfigOptions] = useState(null)
+  const [gameSetting, setGameSetting] = useState({})
 
   const [kick, setKick] = useState(false)
 
@@ -54,7 +46,6 @@ const Ready = (props) => {
       setNewName(null)
     })
   }
-
 
   const seatIn = (index) => {
     apiRoom.seatIn({id: roomDetail._id, position: index}).then(data=>{
@@ -81,14 +72,6 @@ const Ready = (props) => {
   const startGame = () => {
     apiGame.startGame({id: roomDetail._id, setting: gameSetting}).then(data=>{
       message.success('新游戏开始！')
-      setGameSetting({
-        p1: 30,
-        p2: 45,
-        p3: 30,
-        witchSaveSelf: 2,
-        winCondition: 1,
-        flatTicket: 1,
-      })
     })
   }
 
@@ -112,7 +95,59 @@ const Ready = (props) => {
   }
 
   const gameSettings = () => {
-    setSettingModal(true)
+    apiGame.getGameSettings({mode: currentMode}).then(data=>{
+      setGameSetting(data.config)
+      setGameConfigOptions(data.options)
+      setGameSettingList(data.settings)
+      setSettingModal(true)
+    })
+  }
+
+  const changeSettings = (key, type, value) => {
+    let oldValue = gameSetting[key]
+    let newValue
+    switch (type) {
+      case 'minus' :
+        newValue = (oldValue - 15 < 15 ? 15 : oldValue - 15)
+        break
+      case 'add' :
+        newValue = oldValue + 15
+        break
+      case 'radio-click' :
+        newValue = value
+    }
+    let target = {}
+    target[key] = newValue
+    setGameSetting({...gameSetting, ...target})
+  }
+
+  const renderCounterView = (item) => {
+    return (
+      <div className="setting-cell FBH FBAC mar-b10" key={item.key}>
+        <div className="item-title">{item.title}</div>
+        <div className="FBH FBAC FBJC">
+          <MinusCircleOutlined className="icon-font mar-r20" onClick={()=>{changeSettings(item.key, 'minus')}} />
+          <div className="fake-input">{gameSetting[item.key]}</div>
+        </div>
+        <PlusCircleOutlined className="icon-font mar-l20" onClick={()=>{changeSettings(item.key, 'add')}} />
+      </div>
+    )
+  }
+
+  const renderRadioView = (item) => {
+    const opt = gameConfigOptions? gameConfigOptions[item.key] : []
+    return (
+      <div className="setting-cell FBH FBAC mar-b10" key={item.key}>
+        <div className="item-title">{item.title}</div>
+        <Radio.Group
+          options={opt}
+          onChange={(e)=>{changeSettings(item.key,'radio-click', e.target.value)}}
+          value={gameSetting[item.key]}
+          optionType="button"
+          buttonStyle="solid"
+        />
+      </div>
+    )
   }
 
   return (
@@ -307,60 +342,18 @@ const Ready = (props) => {
         ]}
       >
         <div className="settings">
-          <div className="setting-cell FBH FBAC mar-b10">
-            <div className="item-title">预言家行动时间(秒)：</div>
-            <div className="FBH FBAC FBJC">
-              <MinusCircleOutlined className="icon-font mar-r20" onClick={()=>{setGameSetting({...gameSetting, p1: (gameSetting.p1 - 15 < 15 ? 15 : gameSetting.p1 - 15)})}} />
-              <div className="fake-input">{gameSetting.p1}</div>
-            </div>
-            <PlusCircleOutlined className="icon-font mar-l20" onClick={()=>{setGameSetting({...gameSetting, p1: gameSetting.p1 + 15})}} />
-          </div>
-          <div className="setting-cell FBH FBAC mar-b10">
-            <div className="item-title">狼人行动时间(秒)：</div>
-            <div className="FBH FBAC FBJC">
-              <MinusCircleOutlined className="icon-font mar-r20" onClick={()=>{setGameSetting({...gameSetting, p2: (gameSetting.p2 - 15 < 15 ? 15 : gameSetting.p2 - 15)})}} />
-              <div className="fake-input">{gameSetting.p2}</div>
-            </div>
-            <PlusCircleOutlined className="icon-font mar-l20" onClick={()=>{setGameSetting({...gameSetting, p2: gameSetting.p2 + 15})}} />
-          </div>
-          <div className="setting-cell FBH FBAC mar-b10">
-            <div className="item-title">女巫行动时间(秒)：</div>
-            <div className="FBH FBAC FBJC">
-              <MinusCircleOutlined className="icon-font mar-r20" onClick={()=>{setGameSetting({...gameSetting, p3: (gameSetting.p3 - 15 < 15 ? 15 : gameSetting.p3 - 15)})}} />
-              <div className="fake-input">{gameSetting.p3}</div>
-            </div>
-            <PlusCircleOutlined className="icon-font mar-l20" onClick={()=>{setGameSetting({...gameSetting, p3: gameSetting.p3 + 15})}} />
-          </div>
-          <div className="setting-cell FBH FBAC mar-b10">
-            <div className="item-title">女巫是否能自救：</div>
-            <Radio.Group
-              options={witchSaveOptions}
-              onChange={(e)=>{setGameSetting({...gameSetting, witchSaveSelf: e.target.value})}}
-              value={gameSetting.witchSaveSelf}
-              optionType="button"
-              buttonStyle="solid"
-            />
-          </div>
-          <div className="setting-cell FBH FBAC mar-b10">
-            <div className="item-title">游戏胜利条件：</div>
-            <Radio.Group
-              options={winConditionOptions}
-              onChange={(e)=>{setGameSetting({...gameSetting, winCondition: e.target.value})}}
-              value={gameSetting.winCondition}
-              optionType="button"
-              buttonStyle="solid"
-            />
-          </div>
-          <div className="setting-cell FBH FBAC mar-b10">
-            <div className="item-title">平票：</div>
-            <Radio.Group
-              options={flatTicketOptions}
-              onChange={(e)=>{setGameSetting({...gameSetting, flatTicket: e.target.value})}}
-              value={gameSetting.flatTicket}
-              optionType="button"
-              buttonStyle="solid"
-            />
-          </div>
+          {
+            gameSettingList.map(item=>{
+              switch (item.type) {
+                case 'counter':
+                  return renderCounterView(item);
+                case 'radio':
+                  return renderRadioView(item)
+                default:
+                  return null
+              }
+            })
+          }
         </div>
       </Modal>
 

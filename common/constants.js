@@ -1,12 +1,5 @@
 const enums = require('./enums')
 module.exports = {
-  GAME_CONFIG:{
-    PREDICTOR_ACTION_TIME: 30,
-    WOLF_ACTION_TIME: 45,
-    WITCH_ACTION_TIME: 30,
-    DEFAULT_PLAYER_COUNT: 9, // 默认9人局
-    DEFAULT_MODE: 'standard_9',
-  },
   MODE: {
     standard_9:  {
       name: '标准9人局',
@@ -32,7 +25,38 @@ module.exports = {
         enums.GAME_STAGE.SPEAK_STAGE,
         enums.GAME_STAGE.VOTE_STAGE,
         enums.GAME_STAGE.EXILE_FINISH_STAGE,
-      ]
+      ],
+      CONFIG_SETTINGS: [
+        {title: '预言家行动时间（秒）：', type: 'counter', key: 'predictorActionTime'},
+        {title: '狼人行动时间（秒）：', type: 'counter', key: 'wolfActionTime'},
+        {title: '女巫行动时间（秒）：', type: 'counter', key: 'witchActionTime'},
+        {title: '女巫解药限制：', type: 'radio', key: 'witchSaveSelf'},
+        {title: '游戏胜利条件：', type: 'radio', key: 'winCondition'},
+        {title: '平票处理：', type: 'radio', key: 'flatTicket'},
+      ],
+      CONFIG_OPTIONS: {
+        witchSaveSelf: [
+          { name: '均能自救', value: enums.GAME_WITCH_SAVE_SELF.SAVE_ALL_STAGE },
+          { name: '首页自救', value: enums.GAME_WITCH_SAVE_SELF.SAVE_ONLY_FIRST_NIGHT },
+          { name: '不能自救', value: enums.GAME_WITCH_SAVE_SELF.NO_SAVE_SELF },
+        ],
+        winCondition: [
+          { name: '屠边', value: enums.GAME_WIN_CONDITION.KILL_HALF_ROLE },
+          { name: '屠城', value: enums.GAME_WIN_CONDITION.KILL_ALL },
+        ],
+        flatTicket: [
+          { name: '直接进入夜晚', value: enums.GAME_TICKET_FLAT.NO_PK },
+          { name: '加赛pk一轮', value: enums.GAME_TICKET_FLAT.NEED_PK },
+        ]
+      },
+      CONFIG_DEFAULT: {
+        predictorActionTime: 30,
+        wolfActionTime: 45,
+        witchActionTime: 30,
+        witchSaveSelf: enums.GAME_WITCH_SAVE_SELF.SAVE_ONLY_FIRST_NIGHT,
+        winCondition: enums.GAME_WIN_CONDITION.KILL_HALF_ROLE,
+        flatTicket: enums.GAME_TICKET_FLAT.NO_PK
+      }
     },
     standard_6:  {
       name: '标准6人局',
@@ -41,15 +65,45 @@ module.exports = {
       ROLE_MAP: [
         enums.GAME_ROLE.WOLF,
         enums.GAME_ROLE.WOLF,
-        enums.GAME_ROLE.WOLF,
         enums.GAME_ROLE.PREDICTOR,
         enums.GAME_ROLE.GUARD,
         enums.GAME_ROLE.VILLAGER,
         enums.GAME_ROLE.VILLAGER
       ],
       STAGE: [
-
-      ]
+        enums.GAME_STAGE.READY,
+        enums.GAME_STAGE.PREDICTOR_STAGE,
+        enums.GAME_STAGE.GUARD_STAGE,
+        enums.GAME_STAGE.WOLF_STAGE,
+        enums.GAME_STAGE.AFTER_NIGHT,
+        enums.GAME_STAGE.SPEAK_STAGE,
+        enums.GAME_STAGE.VOTE_STAGE,
+        enums.GAME_STAGE.EXILE_FINISH_STAGE,
+      ],
+      CONFIG_SETTINGS: [
+        {title: '预言家行动时间（秒）：', type: 'counter', key: 'predictorActionTime'},
+        {title: '守卫行动时间（秒）：', type: 'counter', key: 'guardActionTime'},
+        {title: '狼人行动时间（秒）：', type: 'counter', key: 'wolfActionTime'},
+        {title: '游戏胜利条件：', type: 'radio', key: 'winCondition'},
+        {title: '平票处理：', type: 'radio', key: 'flatTicket'},
+      ],
+      CONFIG_OPTIONS: {
+        winCondition: [
+          { label: '屠边', name: '屠边', value: enums.GAME_WIN_CONDITION.KILL_HALF_ROLE },
+          { label: '屠城', name: '屠城', value: enums.GAME_WIN_CONDITION.KILL_ALL },
+        ],
+        flatTicket: [
+          { label: '直接进入夜晚', name: '直接进入夜晚', value: enums.GAME_TICKET_FLAT.NO_PK },
+          { label: '加赛pk一轮', name: '加赛pk一轮', value: enums.GAME_TICKET_FLAT.NEED_PK },
+        ]
+      },
+      CONFIG_DEFAULT: {
+        predictorActionTime: 30,
+        wolfActionTime: 45,
+        guardActionTime: 30,
+        winCondition: enums.GAME_WIN_CONDITION.KILL_ALL,
+        flatTicket: enums.GAME_TICKET_FLAT.NO_PK
+      }
     },
   },
   SKILL_MAP: {
@@ -99,67 +153,87 @@ module.exports = {
   },
   PLAYER_ROLE_MAP: {
     wolf: {
+      camp: enums.GAME_CAMP.WOLF,
       name: '狼人',
       key: enums.GAME_ROLE.WOLF
     },
     villager: {
+      camp: enums.GAME_CAMP.CLERIC_AND_VILLAGER,
       name: '平民',
       key: enums.GAME_ROLE.VILLAGER
     },
     predictor: {
+      camp: enums.GAME_CAMP.CLERIC_AND_VILLAGER,
       name: '预言家',
       key: enums.GAME_ROLE.PREDICTOR
     },
     witch: {
+      camp: enums.GAME_CAMP.CLERIC_AND_VILLAGER,
       name: '女巫',
       key: enums.GAME_ROLE.WITCH
     },
     hunter: {
+      camp: enums.GAME_CAMP.CLERIC_AND_VILLAGER,
       name: '猎人',
       key: enums.GAME_ROLE.HUNTER
     },
     guard: {
+      camp: enums.GAME_CAMP.CLERIC_AND_VILLAGER,
       name: '守卫',
-      key: enums.GAME_ROLE.HUNTER
+      key: enums.GAME_ROLE.GUARD
     }
   },
   STAGE_MAP: {
     0: {
+      day: enums.GAME_DAY_NIGHT.IS_NIGHT,
       name: '天黑请闭眼',
       key: 'ready'
     },
     1: {
+      day: enums.GAME_DAY_NIGHT.IS_NIGHT,
       name: '预言家请行动',
       key: 'predictor'
     },
     2: {
+      day: enums.GAME_DAY_NIGHT.IS_NIGHT,
       name: '狼人请行动',
       key: 'wolf'
     },
     3: {
+      day: enums.GAME_DAY_NIGHT.IS_NIGHT,
       name: '女巫请行动',
       key: 'witch'
     },
     4: {
+      day: enums.GAME_DAY_NIGHT.IS_DAY,
       name: '天亮了',
       key: 'actionFinish'
     },
     5: {
+      day: enums.GAME_DAY_NIGHT.IS_DAY,
       name: '发言环节',
       key: 'talk'
     },
     6: {
+      day: enums.GAME_DAY_NIGHT.IS_DAY,
       name: '投票环节',
       key: 'vote'
     },
     6.5: {
+      day: enums.GAME_DAY_NIGHT.IS_DAY,
       name: '加赛pk环节',
       key: 'vote-pk'
     },
     7: {
+      day: enums.GAME_DAY_NIGHT.IS_DAY,
       name: '遗言环节',
       key: 'lastWord'
     },
+    8: {
+      day: enums.GAME_DAY_NIGHT.IS_NIGHT,
+      name: '守卫请行动',
+      key: 'guard'
+    }
   },
   broadcastMap: {
     '1-0': [
