@@ -23,7 +23,7 @@ class gameService extends BaseClass{
       roomId: gameInstance.roomId,
       gameId: gameInstance._id,
       day: gameInstance.day,
-      mode: 3,
+      mode: $enums.GAME_TAG_MODE.VOTE_PK,
       desc: 'pkPlayer'
     })
     let pkPlayer = pkTag ? pkTag.value2 : []
@@ -220,35 +220,39 @@ class gameService extends BaseClass{
       info.push({text: '结束！', level: $enums.TEXT_COLOR.RED})
       return $helper.wrapResult(true, info)
     }
-    if(gameInstance.stage === $enums.GAME_STAGE.PREDICTOR_STAGE && gameInstance.day === $enums.GAME_DAY_ORDER.FIRST_DAY) {
-      return $helper.wrapResult(true, broadcastMap['1-0'])
+    if(gameInstance.stage === $enums.GAME_STAGE.READY && gameInstance.day === $enums.GAME_DAY_ORDER.FIRST_DAY) {
+      return $helper.wrapResult(true, broadcastMap['ready'])
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.READY) {
-      return $helper.wrapResult(true, broadcastMap['*-0'])
+      return $helper.wrapResult(true, broadcastMap['night_begin'])
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.PREDICTOR_STAGE) {
-      return $helper.wrapResult(true, broadcastMap['*-1'])
+      return $helper.wrapResult(true, broadcastMap['predictor_action'])
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.WOLF_STAGE){
-      return $helper.wrapResult(true, broadcastMap['*-2'])
+      return $helper.wrapResult(true, broadcastMap['wolf_action'])
+    }
+
+    if(gameInstance.stage === $enums.GAME_STAGE.GUARD_STAGE){
+      return $helper.wrapResult(true, broadcastMap['guard_action'])
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.WITCH_STAGE){
-      return $helper.wrapResult(true, broadcastMap['*-3'])
+      return $helper.wrapResult(true, broadcastMap['witch_action'])
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.AFTER_NIGHT){
-      //todo: 6人局结算死亡玩家
       let diePlayer = await service.baseService.query(gameTag, {
         roomId: gameInstance.roomId,
         gameId: gameInstance._id,
         day: gameInstance.day,
-        stage: { $in: [$enums.GAME_STAGE.WITCH_STAGE, $enums.GAME_STAGE.AFTER_NIGHT]}, // 阶段
-        mode: 1
+        // stage: { $in: [$enums.GAME_STAGE.WITCH_STAGE, $enums.GAME_STAGE.AFTER_NIGHT]}, // 阶段
+        mode: $enums.GAME_TAG_MODE.DIEna
       }, {}, { sort: { position: 1}})
+
       if(!diePlayer || diePlayer.length < 1){
         let info = []
         info.push({text: '昨天晚上是', level: $enums.TEXT_COLOR.BLACK})
@@ -284,7 +288,7 @@ class gameService extends BaseClass{
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.SPEAK_STAGE){
-      let pkOrder = await service.baseService.queryOne(gameTag,{roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, desc: 'pkOrder', mode: 2})
+      let pkOrder = await service.baseService.queryOne(gameTag,{roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, desc: 'pkOrder', mode: $enums.GAME_TAG_MODE.VOTE_PK})
       if(gameInstance.flatTicket === $enums.GAME_TICKET_FLAT.NEED_PK && pkOrder){
         let info = []
         info.push({text:'进入', level: $enums.TEXT_COLOR.BLACK})
@@ -292,10 +296,10 @@ class gameService extends BaseClass{
         info.push({text:'环节，由', level: $enums.TEXT_COLOR.BLACK})
         info.push({text: '' + pkOrder.position + '号玩家（' + pkOrder.name + '）', level:$enums.TEXT_COLOR.RED})
         info.push({text:'先开始发言，顺序为：', level: $enums.TEXT_COLOR.BLACK})
-        info.push({text:order.value === 'asc' ? '正向' : '逆向', level: $enums.TEXT_COLOR.RED})
+        info.push({text:pkOrder.value === 'asc' ? '正向' : '逆向', level: $enums.TEXT_COLOR.RED})
         return $helper.wrapResult(true, info)
       }
-      let order = await service.baseService.queryOne(gameTag,{roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, desc: 'speakOrder', mode: 2})
+      let order = await service.baseService.queryOne(gameTag,{roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, desc: 'speakOrder', mode: $enums.GAME_TAG_MODE.SPEAK_ORDER})
       let info = []
       info.push({text:'进入发言环节，从', level: $enums.TEXT_COLOR.BLACK})
       info.push({text: '' + order.position + '号玩家（' + order.name + '）', level:$enums.TEXT_COLOR.RED})
@@ -305,10 +309,10 @@ class gameService extends BaseClass{
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.VOTE_STAGE){
-      return $helper.wrapResult(true, broadcastMap['*-6'])
+      return $helper.wrapResult(true, broadcastMap['vote'])
     }
     if(gameInstance.stage === $enums.GAME_STAGE.VOTE_PK_STAGE){
-      return $helper.wrapResult(true, broadcastMap['*-6.5'])
+      return $helper.wrapResult(true, broadcastMap['vote_pk'])
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.EXILE_FINISH_STAGE){
@@ -317,7 +321,7 @@ class gameService extends BaseClass{
         roomId: gameInstance.roomId,
         gameId: gameInstance._id,
         day: gameInstance.day,
-        mode: 3,
+        mode: $enums.GAME_TAG_MODE.VOTE_PK,
         desc: 'pkPlayer'
       })
       if(gameInstance.flatTicket === $enums.GAME_TICKET_FLAT.NEED_PK && pkTag){
@@ -325,14 +329,14 @@ class gameService extends BaseClass{
         stage = $enums.GAME_STAGE.VOTE_PK_STAGE
       }
 
-      let voteTag = await service.baseService.queryOne(gameTag,{roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, stage: stage, mode: 1})
-      if(!voteTag){
+      let voteDieTag = await service.baseService.queryOne(gameTag,{roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, stage: stage, mode: $enums.GAME_TAG_MODE.DIE})
+      if(!voteDieTag){
         let info = []
         info.push({text:'平票，今天没有玩家出局，没有遗言', level: $enums.TEXT_COLOR.BLACK})
         return $helper.wrapResult(true, info)
       } else {
         let info = []
-        info.push({text:'' + voteTag.position + '号玩家（' + voteTag.name + '）', level: $enums.TEXT_COLOR.RED})
+        info.push({text:'' + voteDieTag.position + '号玩家（' + voteDieTag.name + '）', level: $enums.TEXT_COLOR.RED})
         info.push({text:'被投票', level: $enums.TEXT_COLOR.BLACK})
         info.push({text:'出局', level: $enums.TEXT_COLOR.RED})
         info.push({text:'，等待玩家发动技能', level: $enums.TEXT_COLOR.BLACK})
@@ -585,7 +589,7 @@ class gameService extends BaseClass{
         roomId: gameInstance.roomId,
         gameId: gameInstance._id,
         day: gameInstance.day,
-        mode: 3,
+        mode: $enums.GAME_TAG_MODE.VOTE_PK,
         desc: 'pkPlayer'
       })
       let pkPlayer = pkTag && pkTag.value2
@@ -640,7 +644,7 @@ class gameService extends BaseClass{
     let clericAlive = await service.baseService.query(player,{
       gameId: gameInstance._id,
       roomId: gameInstance.roomId,
-      role: { $in: ['predictor', 'witch', 'hunter']},
+      role: { $in: [$enums.GAME_ROLE.PREDICTOR, $enums.GAME_ROLE.WITCH, $enums.GAME_ROLE.HUNTER,$enums.GAME_ROLE.GUARD]},
       status: $enums.PLAYER_STATUS.ALIVE
     })
 
@@ -771,14 +775,10 @@ class gameService extends BaseClass{
     }
 
     // 刷新一下（上面可能有更新game的操作，比如push一个stage）
-    gameInstance = await service.baseService.queryById(game, gameId)
+    let result = await service.gameService.updateStackToNext(gameInstance._id)
+    let nextStage = result.data
 
-    let gameStack = $support.getStageStack(gameInstance)
-    let nextStage = gameStack.pop()
-    // 修改游戏状态
-    let update = {stage: nextStage, stageStack: gameStack.getItems()}
     if(nextStage === $enums.GAME_STAGE.READY){
-      update.day = gameInstance.day + 1
       let recordObject = {
         roomId: gameInstance.roomId,
         gameId: gameInstance._id,
@@ -795,7 +795,7 @@ class gameService extends BaseClass{
       }
       await service.baseService.save(record, recordObject)
     }
-    await service.baseService.updateById(game, gameInstance._id, update)
+
     $ws.connections.forEach(function (conn) {
       let url = '/lrs/' + gameInstance.roomId
       if(conn.path === url){
@@ -805,44 +805,25 @@ class gameService extends BaseClass{
 
     // 倒计时 timer
     let updateGame = await service.baseService.queryById(game, gameId)
-    if(updateGame.stage === $enums.GAME_STAGE.PREDICTOR_STAGE ||
-      updateGame.stage === $enums.GAME_STAGE.WOLF_STAGE ||
-      updateGame.stage === $enums.GAME_STAGE.GUARD_STAGE ||
-      updateGame.stage === $enums.GAME_STAGE.WITCH_STAGE){
-      // 预言家
-      let t = updateGame.stage === $enums.GAME_STAGE.PREDICTOR_STAGE ? gameInstance.predictorActionTime : 30
-      if(updateGame.stage === $enums.GAME_STAGE.WOLF_STAGE){
-        t = gameInstance.wolfActionTime
-      }
-      if(updateGame.stage === $enums.GAME_STAGE.WITCH_STAGE){
-        t = gameInstance.witchActionTime
-      }
-      if(updateGame.stage === $enums.GAME_STAGE.GUARD_STAGE){
-        t = gameInstance.guardActionTime
-      }
 
-      $nodeCache.set('game-time-' + gameInstance._id, t)
-      app.$timer[gameInstance._id] = setInterval(function (){
-        let time =  $nodeCache.get('game-time-' + gameInstance._id)
-        if(time < 0){
-          // 清掉定时器
-          clearInterval(app.$timer[gameInstance._id])
-          service.gameService.moveToNextStage(gameInstance._id)
-        } else {
-          $nodeCache.set('game-time-' + gameInstance._id, time - 1)
-          let data = {
-            'refreshGame': false,
-            time: time,
-          }
-          $ws.connections.forEach(function (conn) {
-            let url = '/lrs/' + gameInstance.roomId
-            if(conn.path === url){
-              conn.sendText(JSON.stringify(data))
-            }
-          })
-        }
-      },1000)
-    } else {
+    let t = -1
+    switch (updateGame.stage) {
+      case $enums.GAME_STAGE.PREDICTOR_STAGE:
+        t = gameInstance.predictorActionTime
+        break
+      case $enums.GAME_STAGE.WOLF_STAGE:
+        t = gameInstance.wolfActionTime
+        break
+      case $enums.GAME_STAGE.WITCH_STAGE:
+        t = gameInstance.witchActionTime
+        break
+      case $enums.GAME_STAGE.GUARD_STAGE:
+        t = gameInstance.guardActionTime
+        break
+      default:
+    }
+
+    if(t < 0){
       let data = {
         'refreshGame': false,
         time: 0,
@@ -853,9 +834,52 @@ class gameService extends BaseClass{
           conn.sendText(JSON.stringify(data))
         }
       })
+      return $helper.wrapResult(true,'Y')
     }
 
+    $nodeCache.set('game-time-' + gameInstance._id, t)
+    app.$timer[gameInstance._id] = setInterval(function (){
+      let time =  $nodeCache.get('game-time-' + gameInstance._id)
+      if(time < 0){
+        // 清掉定时器
+        clearInterval(app.$timer[gameInstance._id])
+        service.gameService.moveToNextStage(gameInstance._id)
+      } else {
+        $nodeCache.set('game-time-' + gameInstance._id, time - 1)
+        let data = {
+          'refreshGame': false,
+          time: time,
+        }
+        $ws.connections.forEach(function (conn) {
+          let url = '/lrs/' + gameInstance.roomId
+          if(conn.path === url){
+            conn.sendText(JSON.stringify(data))
+          }
+        })
+      }
+    },1000)
     return $helper.wrapResult(true,'Y')
+  }
+
+  /**
+   * 更新game阶段栈
+   * @returns {Promise<void>}
+   */
+  async updateStackToNext (id, update = {}) {
+    const { service, app } = this
+    const { $helper, $model, $support } = app
+    const { game } = $model
+    if(!id){
+      return $helper.wrapResult(false, 'gameId为空！', -1)
+    }
+    let gameInstance = await service.baseService.queryById(game, id)
+    let gameStack = $support.getStageStack(gameInstance)
+    // 弹出下一阶段
+    let nextStage = gameStack.pop()
+    // 更新状态
+    let needUpdate = {stage: nextStage, stageStack: gameStack.getItems(), ...update}
+    await service.baseService.updateById(game, gameInstance._id, needUpdate)
+    return $helper.wrapResult(true, nextStage)
   }
 }
 module.exports = gameService;

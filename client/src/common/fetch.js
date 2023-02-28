@@ -67,7 +67,6 @@ service.interceptors.response.use(
         })
         helper.removeToken()
       }
-      // todo：全局通用设置，这里统一处理response.data.success = false的情况，这样各个地方就不需要一直catch promise了
       // 约定：需要特殊处理的就在config中加参数比如初始化fetch的时候加一个overHandle = true ，额外处理error
       if(!response.config.overHandle){
         message.error(response.data.errorMessage)

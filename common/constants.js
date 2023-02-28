@@ -236,19 +236,19 @@ module.exports = {
     }
   },
   broadcastMap: {
-    '1-0': [
+    'ready': [
       {
         text: '请确认自己的身份，准备开始游戏，天黑请闭眼...',
         level: enums.TEXT_COLOR.BLACK
       }
     ],
-    '*-0': [
+    'night_begin': [
       {
         text: '天黑请闭眼...',
         level: enums.TEXT_COLOR.BLACK
       }
     ],
-    '*-1': [
+    'predictor_action': [
       {
         text: '预言家',
         level: enums.TEXT_COLOR.RED
@@ -258,7 +258,7 @@ module.exports = {
         level: enums.TEXT_COLOR.BLACK
       }
     ],
-    '*-2': [
+    'wolf_action': [
       {
         text: '狼人',
         level: enums.TEXT_COLOR.RED
@@ -268,7 +268,7 @@ module.exports = {
         level: enums.TEXT_COLOR.BLACK
       }
     ],
-    '*-3': [
+    'witch_action': [
       {
         text: '女巫',
         level: enums.TEXT_COLOR.RED
@@ -278,7 +278,17 @@ module.exports = {
         level: enums.TEXT_COLOR.BLACK
       }
     ],
-    '*-6': [
+    'guard_action': [
+      {
+        text: '守卫',
+        level: enums.TEXT_COLOR.RED
+      },
+      {
+        text: '请行动，你选择你要守护的玩家。',
+        level: enums.TEXT_COLOR.BLACK
+      }
+    ],
+    'vote': [
       {
         text: '开始',
         level: enums.TEXT_COLOR.BLACK
@@ -300,7 +310,7 @@ module.exports = {
         level: enums.TEXT_COLOR.BLACK
       },
     ],
-    '*-6.5': [
+    'vote_pk': [
       {
         text: '开始',
         level: enums.TEXT_COLOR.BLACK

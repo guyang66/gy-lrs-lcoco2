@@ -95,6 +95,11 @@ module.exports = {
     ALIVE: 1, // 存活/在场
     DEAD: 0 // 死亡/出局
   },
+  GAME_TAG_MODE: {
+    DIE: 1,
+    SPEAK_ORDER: 2,
+    VOTE_PK: 3
+  },
   TEXT_COLOR: {
     BLACK: 1, // 黑色 #000000
     RED: 2, // 红色 #FF0000

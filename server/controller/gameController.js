@@ -79,14 +79,7 @@ class gameController extends BaseClass {
     let gameInstance = await service.baseService.save(game, gameObject)
 
     // 直接进入第一阶段
-    let gameStack = $support.getStageStack(gameInstance)
-    let nextStage = gameStack.pop()
-    await service.baseService.updateById(game, gameInstance._id, {
-      day: $enums.GAME_DAY_ORDER.FIRST_DAY, // 第一天
-      status: $enums.GAME_STATUS.GOING,
-      stage: nextStage,
-      stageStack: gameStack.getItems()
-    })
+    await service.gameService.updateStackToNext(gameInstance._id,{day: $enums.GAME_DAY_ORDER.FIRST_DAY, status: $enums.GAME_STATUS.GOING})
 
     // 随机创建player
     let mode = gameInstance.mode
@@ -1145,7 +1138,7 @@ class gameController extends BaseClass {
       return
     }
     let currentUser = await service.baseService.userInfo()
-    let exist = await service.baseService.queryOne(action, {roomId: roomId, gameId: gameInstance._id, from: currentUser.username, day: gameInstance.day, stage: {"$in": [$enums.GAME_STAGE.AFTER_NIGHT,$enums.GAME_STAGE.AFTER_NIGHT]}, action: $enums.SKILL_ACTION_KEY.SHOOT})
+    let exist = await service.baseService.queryOne(action, {roomId: roomId, gameId: gameInstance._id, from: currentUser.username, day: gameInstance.day, stage: {"$in": [$enums.GAME_STAGE.AFTER_NIGHT,$enums.GAME_STAGE.EXILE_FINISH_STAGE]}, action: $enums.SKILL_ACTION_KEY.SHOOT})
     if(exist){
       ctx.body = $helper.Result.fail(-1,'今天你已使用过开枪功能！')
       return
@@ -1224,7 +1217,7 @@ class gameController extends BaseClass {
       stage: gameInstance.stage,
       dayStatus: gameInstance.stage < 4 ? 1 : 2,
       desc: $enums.SKILL_ACTION_KEY.SHOOT,
-      mode: 1,
+      mode: $enums.GAME_TAG_MODE.DIE,
       target: targetPlayer.username,
       name: targetPlayer.name,
       position: targetPlayer.position
@@ -1382,7 +1375,7 @@ class gameController extends BaseClass {
       stage: gameInstance.stage,
       dayStatus: gameInstance.stage < 4 ? 1 : 2,
       desc: $enums.SKILL_ACTION_KEY.BOOM,
-      mode: 1,
+      mode: $enums.GAME_TAG_MODE.DIE,
       target: currentPlayer.username,
       name: currentPlayer.name,
       position: currentPlayer.position
@@ -1436,10 +1429,10 @@ class gameController extends BaseClass {
         }
       }
       await service.baseService.save(record, recordObjectNight)
-
+      // 重置阶段
+      await service.stageService.newRound(gameInstance._id)
       // 修改阶段
-      let update = {stage: $enums.GAME_STAGE.READY, day: gameInstance.day + 1}
-      await service.baseService.updateById(game, gameInstance._id, update)
+      await service.gameService.updateStackToNext(gameInstance._id)
     }
 
     $ws.connections.forEach(function (conn) {
@@ -1623,6 +1616,7 @@ class gameController extends BaseClass {
 
     ctx.body = $helper.Result.success(roomInstance._id)
   }
+
 
   /**
    * 获取游戏设置项

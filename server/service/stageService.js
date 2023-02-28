@@ -60,7 +60,7 @@ class stageService extends BaseClass{
     const { service, app} = this
     const { $helper, $model, $support, $enums } = app
 
-    const { game, player, action, record } = $model
+    const { game, player, action, record, gameTag } = $model
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)
     }
@@ -154,10 +154,25 @@ class stageService extends BaseClass{
 
       let defendAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: $enums.GAME_STAGE.GUARD_STAGE, action: $enums.SKILL_ACTION_KEY.DEFEND})
       if(!defendAction || diePlayer.username !== defendAction.to){
-        // 狼人刀的和守卫守的同一人，
-        await service.baseService.updateById(player, diePlayer._id,{status: 0, outReason: $enums.GAME_OUT_REASON.ASSAULT})
 
+        // 给一次死亡
+        let tagObject = {
+          roomId: gameInstance.roomId,
+          gameId: gameInstance._id,
+          day: gameInstance.day,
+          stage: gameInstance.stage,
+          dayStatus: $support.getDayAndNightString(gameInstance.stage),
+          desc: $enums.SKILL_ACTION_KEY.ASSAULT,
+          mode: $enums.GAME_TAG_MODE.DIE,
+          target: diePlayer.username,
+          name: diePlayer.name,
+          position: diePlayer.position
+        }
+        await service.baseService.save(gameTag, tagObject)
+
+        await service.baseService.updateById(player, diePlayer._id,{status: $enums.PLAYER_STATUS.DEAD, outReason: $enums.GAME_OUT_REASON.ASSAULT})
       }
+
       // 结算所有的死亡玩家
       await service.stageService.settleStage(gameInstance._id)
     }
@@ -193,7 +208,7 @@ class stageService extends BaseClass{
           stage: gameInstance.stage,
           dayStatus: $support.getDayAndNightString(gameInstance.stage),
           desc: $enums.SKILL_ACTION_KEY.ASSAULT,
-          mode: 1,
+          mode: $enums.GAME_TAG_MODE.DIE,
           target: killPlayer.username,
           name: killPlayer.name,
           position: killPlayer.position
@@ -271,7 +286,7 @@ class stageService extends BaseClass{
         stage: gameInstance.stage,
         dayStatus: $support.getDayAndNightString(gameInstance.stage),
         desc: $enums.SKILL_ACTION_KEY.POISON,
-        mode: 1,
+        mode: $enums.GAME_TAG_MODE.DIE,
         target: poisonPlayer.username,
         name: poisonPlayer.name,
         position: poisonPlayer.position
@@ -359,7 +374,7 @@ class stageService extends BaseClass{
     await service.baseService.save(record, gameRecord)
 
     // 结算所有的死亡玩家
-    let diePlayerList = await service.baseService.query(gameTag,{roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, stage:{ $in: [$enums.GAME_STAGE.WOLF_STAGE, $enums.GAME_STAGE.WITCH_STAGE]}, mode: 1})
+    let diePlayerList = await service.baseService.query(gameTag,{roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, stage:{ $in: [$enums.GAME_STAGE.WOLF_STAGE, $enums.GAME_STAGE.WITCH_STAGE]}, mode: $enums.GAME_TAG_MODE.DIE})
     if(!diePlayerList || diePlayerList.length < 1){
       let peaceRecord = {
         roomId: gameInstance.roomId,
@@ -441,7 +456,7 @@ class stageService extends BaseClass{
       stage: gameInstance.stage,
       dayStatus: $support.getDayAndNightString(gameInstance.stage),
       desc: 'speakOrder',
-      mode: 2,
+      mode: $enums.GAME_TAG_MODE.SPEAK_ORDER,
       value: randomOrder === 1 ? 'asc' : ' desc', // asc 上升（正序） ; desc 下降（逆序）
       target: targetPlayer.username,
       name: targetPlayer.name,
@@ -504,7 +519,7 @@ class stageService extends BaseClass{
         roomId: gameInstance.roomId,
         gameId: gameInstance._id,
         day: gameInstance.day,
-        mode: 3,
+        mode: $enums.GAME_TAG_MODE.VOTE_PK,
         desc: 'pkPlayer'
       })
       let pkPlayers = pkTag ? pkTag.value2 : []
@@ -702,7 +717,7 @@ class stageService extends BaseClass{
           stage: gameInstance.stage,
           dayStatus: $support.getDayAndNightString(gameInstance.stage),
           desc: $enums.SKILL_ACTION_KEY.VOTE,
-          mode: 1,
+          mode: $enums.GAME_TAG_MODE.DIE,
           target: votePlayer.username,
           name: votePlayer.name,
           position: votePlayer.position
@@ -765,8 +780,8 @@ class stageService extends BaseClass{
             day: gameInstance.day,
             stage: gameInstance.stage,
             dayStatus: $support.getDayAndNightString(gameInstance.stage),
-            desc: 'pkOrder',
-            mode: 2,
+            desc: 'speakOrder',
+            mode: $enums.GAME_TAG_MODE.SPEAK_ORDER,
             value: randomOrder === 1 ? 'asc' : ' desc', // asc 上升（正序） ; desc 下降（逆序）
             target: targetPlayer.username,
             name: targetPlayer.name,
@@ -841,7 +856,7 @@ class stageService extends BaseClass{
             stage: gameInstance.stage,
             dayStatus: $support.getDayAndNightString(gameInstance.stage),
             desc: 'pkPlayer',
-            mode: 3,
+            mode: $enums.GAME_TAG_MODE.VOTE_PK,
             value2: maxCount,
             target: 'pkPlayer',
           }
@@ -925,7 +940,7 @@ class stageService extends BaseClass{
     let gameInstance = await service.baseService.queryById(game, id)
     let gameConfig = $constants.MODE[gameInstance.mode]
     let newStack = [].concat(gameConfig.STAGE).reverse()
-    await service.baseService.updateById(game, gameInstance._id, {stageStack: newStack})
+    await service.baseService.updateById(game, gameInstance._id, {stageStack: newStack, day: gameInstance.day + 1})
     return $helper.wrapResult(true, '')
   }
 }
