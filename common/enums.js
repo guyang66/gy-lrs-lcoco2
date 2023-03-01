@@ -71,10 +71,6 @@ module.exports = {
     ASSAULT: 'assault', // 被狼人刀死
     BOOM: 'boom', // 自爆自杀
   },
-  GAME_RECORD_KEY: {
-    GAME_START: 'game_start', // 游戏开始
-    BEFORE_NIGHT: 'before_night', // 天黑请闭眼
-  },
   SKILL_ACTION_KEY: {
     BOOM: 'boom', // 狼人自爆
     KILL: 'kill', // 狼人刀死
@@ -85,6 +81,7 @@ module.exports = {
     SHOOT: 'shoot', // 猎人开枪
     DEFEND: 'defend', // 守卫守护
     VOTE: 'vote', // 投票
+    JUMP: 'jump', // 空过（未使用技能）
     DIE: 'die', // 死亡/出局
   },
   SKILL_STATUS: {

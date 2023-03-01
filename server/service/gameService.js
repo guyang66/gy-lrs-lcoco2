@@ -202,7 +202,7 @@ class gameService extends BaseClass{
     const { service, app } = this
     const { $helper, $model, $constants, $enums } = app
     const { game, gameTag } = $model
-    const { broadcastMap } = $constants
+    const { BROADCAST_MAP } = $constants
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)
     }
@@ -221,27 +221,27 @@ class gameService extends BaseClass{
       return $helper.wrapResult(true, info)
     }
     if(gameInstance.stage === $enums.GAME_STAGE.READY && gameInstance.day === $enums.GAME_DAY_ORDER.FIRST_DAY) {
-      return $helper.wrapResult(true, broadcastMap['ready'])
+      return $helper.wrapResult(true, BROADCAST_MAP['ready'])
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.READY) {
-      return $helper.wrapResult(true, broadcastMap['night_begin'])
+      return $helper.wrapResult(true, BROADCAST_MAP['night_begin'])
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.PREDICTOR_STAGE) {
-      return $helper.wrapResult(true, broadcastMap['predictor_action'])
+      return $helper.wrapResult(true, BROADCAST_MAP['predictor_action'])
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.WOLF_STAGE){
-      return $helper.wrapResult(true, broadcastMap['wolf_action'])
+      return $helper.wrapResult(true, BROADCAST_MAP['wolf_action'])
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.GUARD_STAGE){
-      return $helper.wrapResult(true, broadcastMap['guard_action'])
+      return $helper.wrapResult(true, BROADCAST_MAP['guard_action'])
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.WITCH_STAGE){
-      return $helper.wrapResult(true, broadcastMap['witch_action'])
+      return $helper.wrapResult(true, BROADCAST_MAP['witch_action'])
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.AFTER_NIGHT){
@@ -250,7 +250,7 @@ class gameService extends BaseClass{
         gameId: gameInstance._id,
         day: gameInstance.day,
         // stage: { $in: [$enums.GAME_STAGE.WITCH_STAGE, $enums.GAME_STAGE.AFTER_NIGHT]}, // 阶段
-        mode: $enums.GAME_TAG_MODE.DIEna
+        mode: $enums.GAME_TAG_MODE.DIE
       }, {}, { sort: { position: 1}})
 
       if(!diePlayer || diePlayer.length < 1){
@@ -309,10 +309,10 @@ class gameService extends BaseClass{
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.VOTE_STAGE){
-      return $helper.wrapResult(true, broadcastMap['vote'])
+      return $helper.wrapResult(true, BROADCAST_MAP['vote'])
     }
     if(gameInstance.stage === $enums.GAME_STAGE.VOTE_PK_STAGE){
-      return $helper.wrapResult(true, broadcastMap['vote_pk'])
+      return $helper.wrapResult(true, BROADCAST_MAP['vote_pk'])
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.EXILE_FINISH_STAGE){
@@ -417,7 +417,6 @@ class gameService extends BaseClass{
         info.push({text: '请确认您的同伴，并讨论要袭击的玩家', level: $enums.TEXT_COLOR.GREEN})
         return $helper.wrapResult(true, info)
       }
-      return $helper.wrapResult(true, [])
     } else if ((gameInstance.stage === $enums.GAME_STAGE.WITCH_STAGE || gameInstance.stage === $enums.GAME_STAGE.AFTER_NIGHT) && currentPlayer.role === 'wolf') {
       let killAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId,day: gameInstance.day, stage: $enums.GAME_STAGE.WOLF_STAGE, action: $enums.SKILL_ACTION_KEY.KILL})
       if(!killAction){
@@ -635,7 +634,7 @@ class gameService extends BaseClass{
       return await service.gameService.setGameWin(id, $enums.GAME_CAMP.WOLF)
     }
 
-    let villagerAlive = await service.baseService.query(player,{gameId: gameInstance._id, roomId: gameInstance.roomId, role: 'villager', status: $enums.PLAYER_STATUS.ALIVE})
+    let villagerAlive = await service.baseService.query(player,{gameId: gameInstance._id, roomId: gameInstance.roomId, role: $enums.GAME_ROLE.VILLAGER, status: $enums.PLAYER_STATUS.ALIVE})
     if((!villagerAlive || villagerAlive.length < 1) && gameInstance.winCondition === $enums.GAME_WIN_CONDITION.KILL_HALF_ROLE){
       // 屠边 - 村民 => 游戏结束，狼人胜利
       return await service.gameService.setGameWin(id, $enums.GAME_CAMP.WOLF)
@@ -653,7 +652,7 @@ class gameService extends BaseClass{
       return await service.gameService.setGameWin(id, $enums.GAME_CAMP.WOLF)
     }
 
-    let wolfAlive = await service.baseService.query(player,{gameId: gameInstance._id, roomId: gameInstance.roomId, role: 'wolf', status: $enums.PLAYER_STATUS.ALIVE})
+    let wolfAlive = await service.baseService.query(player,{gameId: gameInstance._id, roomId: gameInstance.roomId, role:  $enums.GAME_ROLE.WOLF, status: $enums.PLAYER_STATUS.ALIVE})
     if(!wolfAlive || wolfAlive.length < 1){
       // 狼人死完 => 游戏结束，好人胜利
       return await service.gameService.setGameWin(id, $enums.GAME_CAMP.CLERIC_AND_VILLAGER)
@@ -671,7 +670,7 @@ class gameService extends BaseClass{
   async setGameWin (id, camp) {
     const { service, app } = this
     const { $helper, $model, $ws, $enums } = app
-    const { game, record } = $model
+    const { game } = $model
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)
     }
@@ -680,37 +679,7 @@ class gameService extends BaseClass{
     }
     let gameInstance = await service.baseService.queryById(game, id)
     await service.baseService.updateById(game, gameInstance._id,{status: $enums.GAME_STATUS.FINISHED, winner: camp})
-    let recordObject = {
-      roomId: gameInstance.roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      view: [],
-      isCommon: 1,
-      isTitle: 0,
-      content: {
-        type: 'rich-text',
-        content: [
-          {
-            text: '游戏结束！',
-            level: $enums.TEXT_COLOR.BLACK,
-          },
-          {
-            text: camp === $enums.GAME_CAMP.WOLF ? '狼人阵营' : '好人阵营',
-            level: camp === $enums.GAME_CAMP.WOLF ? $enums.TEXT_COLOR.RED : $enums.TEXT_COLOR.GREEN,
-          },
-          {
-            text: '赢得',
-            level: $enums.TEXT_COLOR.BLACK,
-          },
-          {
-            text: '胜利！',
-            level: $enums.TEXT_COLOR.GREEN,
-          },
-        ]
-      }
-    }
-    await service.baseService.save(record, recordObject)
+    await service.recordService.gameWinRecord(gameInstance, camp)
     $ws.connections.forEach(function (conn) {
       let url = '/lrs/' + gameInstance.roomId
       if(conn.path === url){
@@ -727,9 +696,9 @@ class gameService extends BaseClass{
    */
   async moveToNextStage (gameId) {
     const { service, app } = this
-    const { $helper, $model, $ws, $nodeCache, $enums, $constants, $support } = app
+    const { $helper, $model, $ws, $nodeCache, $enums } = app
 
-    const { game, record } = $model
+    const { game } = $model
 
     if(!gameId || gameId === ''){
       return $helper.wrapResult(false, 'gameId为空！', -1)
@@ -779,21 +748,7 @@ class gameService extends BaseClass{
     let nextStage = result.data
 
     if(nextStage === $enums.GAME_STAGE.READY){
-      let recordObject = {
-        roomId: gameInstance.roomId,
-        gameId: gameInstance._id,
-        day: gameInstance.day + 1,
-        stage: gameInstance.stage,
-        view: [],
-        isCommon: 1,
-        isTitle: 0,
-        content: {
-          text: '天黑请闭眼',
-          type: 'text',
-          level: $enums.TEXT_COLOR.BLACK,
-        }
-      }
-      await service.baseService.save(record, recordObject)
+      await service.recordService.nightBeginRecord(gameInstance, gameInstance.day + 1)
     }
 
     $ws.connections.forEach(function (conn) {

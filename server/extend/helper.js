@@ -289,6 +289,22 @@ module.exports = app => ({
     return array.find(item=>{
       return item === target
     })
+  },
+
+  /**
+   * 把map变成数组
+   * @param map
+   * @returns {[]|*[]}
+   */
+  mapToArray (map) {
+    if(this.isEmptyObject(map)){
+      return []
+    }
+    let tmp = []
+    for(let key in map){
+      tmp.push(map[key])
+    }
+    return tmp
   }
 
 })

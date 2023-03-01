@@ -6,8 +6,8 @@ class gameController extends BaseClass {
    */
   async gameStart () {
     const { service, ctx, app } = this
-    const { $helper, $model, $constants, $support, $ws, $enums, $nodeCache } = app
-    const { room, game, user, player, vision, record } = $model
+    const { $helper, $model, $constants, $support, $ws, $enums } = app
+    const { room, game, user, player, vision } = $model
     const { SKILL_MAP } = $constants
     let { id, setting } = ctx.request.body
     if(!id || id === ''){
@@ -94,8 +94,9 @@ class gameController extends BaseClass {
         username: roomInstance['v' + (item.number)],
         name: randomUser.name,
         role: item.role,
+        roleName: $support.getRoleName(item.role),
         camp: $support.getCampByRole(item.role),
-        campString: $support.getCampByRole(item.role, true),
+        campName: $support.getCampByRole(item.role, true),
         status: $enums.PLAYER_STATUS.ALIVE, // 都是存活状态
         skill: SKILL_MAP[item.role],
         position: item.number
@@ -120,13 +121,13 @@ class gameController extends BaseClass {
     }
 
     // 生成一条游戏开始记录
-    await service.recordService.saveGameRecord(gameInstance,$enums.GAME_RECORD_KEY.GAME_START)
+    await service.recordService.gameStartRecord(gameInstance)
 
     // 改变房间状态, 使游戏进行中
     await service.baseService.updateById(room, roomInstance._id,{ status: $enums.GAME_STATUS.GOING, gameId: gameInstance._id})
 
     // 游戏第一阶段记录
-    await service.recordService.saveGameRecord(gameInstance,$enums.GAME_RECORD_KEY.BEFORE_NIGHT)
+    await service.recordService.nightBeginRecord(gameInstance)
 
     $ws.connections.forEach(function (conn) {
       let url = '/lrs/' + gameInstance.roomId
@@ -431,7 +432,7 @@ class gameController extends BaseClass {
   async checkPlayer () {
     const { service, ctx, app } = this
     const { $helper, $model, $ws, $enums } = app
-    const { game, player, vision, record, action } = $model
+    const { game, player, vision, action } = $model
     const { roomId, gameId, username } = ctx.query
     if(!roomId || roomId === ''){
       ctx.body = $helper.Result.fail(-1,'roomId不能为空！')
@@ -505,47 +506,15 @@ class gameController extends BaseClass {
     }
     await service.baseService.save(action, actionObject)
 
-    let targetCamp = targetPlayer.camp
-    let targetCampName = targetCamp === $enums.GAME_CAMP.WOLF ? '狼人阵营' : '好人阵营'
-    // 生成一条record
-    let recordObject = {
-      roomId: roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      view: [],
-      isCommon: 0,
-      isTitle: 0,
-      content: {
-        type: 'action',
-        text: '预言家：' + currentPlayer.position + '号玩家（' + currentPlayer.name + '）查验了' + targetPlayer.position + '号玩家（' + targetPlayer.name + '）的身份为：' + targetCampName,
-        key: 'check',
-        actionName: '查验',
-        level: $enums.TEXT_COLOR.GREEN,
-        from: {
-          username: currentPlayer.username,
-          name: currentPlayer.name,
-          position: currentPlayer.position,
-          role: currentPlayer.role,
-          camp: currentPlayer.camp
-        },
-        to: {
-          username: targetPlayer.username,
-          name: targetPlayer.name,
-          position: targetPlayer.position,
-          role: targetPlayer.role,
-          camp: targetPlayer.camp
-        }
-      }
-    }
-    await service.baseService.save(record, recordObject)
+    // 生成一条recor
+    await service.recordService.actionRecord(gameInstance,targetPlayer, {level: $enums.TEXT_COLOR.GREEN, actionKey: $enums.SKILL_ACTION_KEY.CHECK})
 
     let r = {
       username: targetPlayer.username,
       name: targetPlayer.name,
       position: targetPlayer.position,
-      camp: targetCamp,
-      campName: targetCampName,
+      camp: targetPlayer.camp,
+      campName: targetPlayer.campName,
     }
 
     $ws.connections.forEach(function (conn) {
@@ -565,7 +534,7 @@ class gameController extends BaseClass {
   async defendPlayer () {
     const { service, ctx, app } = this
     const { $helper, $model, $ws, $enums } = app
-    const { game, player, vision, record, action } = $model
+    const { game, player, action } = $model
     const { roomId, gameId, username } = ctx.query
     if(!roomId || roomId === ''){
       ctx.body = $helper.Result.fail(-1,'roomId不能为空！')
@@ -639,47 +608,14 @@ class gameController extends BaseClass {
     }
     await service.baseService.save(action, actionObject)
 
-    let targetCamp = targetPlayer.camp
-    let targetCampName = targetCamp === $enums.GAME_CAMP.WOLF ? '狼人阵营' : '好人阵营'
-    // 生成一条record
-    let recordObject = {
-      roomId: roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      view: [],
-      isCommon: 0,
-      isTitle: 0,
-      content: {
-        type: 'action',
-        text: '守卫：' + currentPlayer.position + '号玩家（' + currentPlayer.name + '）守护了' + targetPlayer.position + '号玩家（' + targetPlayer.name +'）',
-        key: $enums.SKILL_ACTION_KEY.DEFEND,
-        actionName: '守护',
-        level: $enums.TEXT_COLOR.GREEN,
-        from: {
-          username: currentPlayer.username,
-          name: currentPlayer.name,
-          position: currentPlayer.position,
-          role: currentPlayer.role,
-          camp: currentPlayer.camp
-        },
-        to: {
-          username: targetPlayer.username,
-          name: targetPlayer.name,
-          position: targetPlayer.position,
-          role: targetPlayer.role,
-          camp: targetPlayer.camp
-        }
-      }
-    }
-    await service.baseService.save(record, recordObject)
+    await service.recordService.actionRecord(gameInstance, targetPlayer, {level: $enums.TEXT_COLOR.GREEN, actionKey: $enums.SKILL_ACTION_KEY.DEFEND})
 
     let r = {
       username: targetPlayer.username,
       name: targetPlayer.name,
       position: targetPlayer.position,
-      camp: targetCamp,
-      campName: targetCampName,
+      camp: targetPlayer.camp,
+      campName: targetPlayer.campName,
     }
 
     $ws.connections.forEach(function (conn) {
@@ -781,8 +717,8 @@ class gameController extends BaseClass {
    */
   async antidotePlayer () {
     const { service, ctx, app } = this
-    const { $helper, $model, $support, $enums  } = app
-    const { game, player, record, action } = $model
+    const { $helper, $model, $enums  } = app
+    const { game, player, action } = $model
     const { roomId, gameId } = ctx.query
     if(!roomId || roomId === ''){
       ctx.body = $helper.Result.fail(-1,'roomId不能为空！')
@@ -859,38 +795,7 @@ class gameController extends BaseClass {
     }
     await service.baseService.save(action, actionObject)
     let diePlayer = await service.baseService.queryOne(player,{roomId: roomId, gameId: gameInstance._id, username: killTarget})
-    let recordObject = {
-      roomId: roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      view: [],
-      isCommon: 0,
-      isTitle: 0,
-      content: {
-        type: 'action',
-        key: $enums.SKILL_ACTION_KEY.ANTIDOTE,
-        text: '女巫——' + $support.getPlayerFullName(currentPlayer) + '使用解药救了：' +   $support.getPlayerFullName(diePlayer),
-        actionName: '解药',
-        level: $enums.TEXT_COLOR.GREEN,
-        from: {
-          username: currentPlayer.username,
-          name: currentPlayer.name,
-          position: currentPlayer.position,
-          role: currentPlayer.role,
-          camp: currentPlayer.camp
-        },
-        to: {
-          username: diePlayer.username,
-          name: diePlayer.name,
-          position: diePlayer.position,
-          role: diePlayer.role,
-          camp: diePlayer.camp
-        }
-      },
-    }
-    await service.baseService.save(record, recordObject)
-
+    await service.recordService.actionRecord(gameInstance, diePlayer, {level: $enums.TEXT_COLOR.GREEN, actionKey: $enums.SKILL_ACTION_KEY.ANTIDOTE})
     // 修改解药状态
     let newSkillStatus = []
     skills.forEach(item=>{
@@ -1105,7 +1010,7 @@ class gameController extends BaseClass {
   async shootPlayer () {
     const { service, ctx, app } = this
     const { $helper, $model, $support, $ws, $enums } = app
-    const { game, player, action, gameTag, record } = $model
+    const { game, player, action, gameTag } = $model
     const { roomId, gameId, username } = ctx.query
     if(!roomId || roomId === ''){
       ctx.body = $helper.Result.fail(-1,'roomId不能为空！')
@@ -1177,37 +1082,7 @@ class gameController extends BaseClass {
       position: targetPlayer.position,
     }
 
-    let recordObject = {
-      roomId: gameInstance.roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      view: [],
-      isCommon: 1,
-      isTitle: 0,
-      content: {
-        type:'action',
-        text: '猎人——' + $support.getPlayerFullName(currentPlayer) + '发动技能，开枪带走了'  + $support.getPlayerFullName(targetPlayer),
-        action: $enums.SKILL_ACTION_KEY.SHOOT,
-        actionName: '开枪',
-        level: $enums.TEXT_COLOR.RED,
-        from: {
-          username: currentPlayer.username,
-          name: currentPlayer.name,
-          position: currentPlayer.position,
-          role: currentPlayer.role,
-          camp: currentPlayer.camp
-        },
-        to: {
-          username: targetPlayer.username,
-          name: targetPlayer.name,
-          position: targetPlayer.position,
-          role: targetPlayer.role,
-          camp: targetPlayer.camp
-        }
-      }
-    }
-    await service.baseService.save(record, recordObject)
+    await service.recordService.actionRecord(gameInstance, targetPlayer, {level: $enums.TEXT_COLOR.RED, actionKey: $enums.SKILL_ACTION_KEY.SHOOT})
 
     // 注册另一个玩家死亡
     let tagObject = {
@@ -1215,7 +1090,7 @@ class gameController extends BaseClass {
       gameId: gameInstance._id,
       day: gameInstance.day,
       stage: gameInstance.stage,
-      dayStatus: gameInstance.stage < 4 ? 1 : 2,
+      dayStatus: $support.getDayAndNightString(gameInstance.stage),
       desc: $enums.SKILL_ACTION_KEY.SHOOT,
       mode: $enums.GAME_TAG_MODE.DIE,
       target: targetPlayer.username,
@@ -1224,34 +1099,8 @@ class gameController extends BaseClass {
     }
     await service.baseService.save(gameTag, tagObject)
 
-    let deadRecord = {
-      roomId: gameInstance.roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      view: [],
-      isCommon: 1,
-      isTitle: 0,
-      content: {
-        type: 'action',
-        action: $enums.SKILL_ACTION_KEY.DIE,
-        actionName: '死亡',
-        level: $enums.TEXT_COLOR.RED,
-        from: {
-          username: targetPlayer.username,
-          name: targetPlayer.name,
-          position: targetPlayer.position,
-          role: targetPlayer.role,
-          camp: targetPlayer.camp
-        },
-        to: {
-          role: 'out',
-          name: '出局'
-        }
-      }
-    }
-    await service.baseService.save(record, deadRecord)
-    await service.baseService.updateById(player, targetPlayer._id,{status: 0, outReason: $enums.GAME_OUT_REASON.SHOOT})
+    await service.recordService.deadRecord(gameInstance, targetPlayer)
+    await service.baseService.updateById(player, targetPlayer._id,{status: $enums.PLAYER_STATUS.DEAD, outReason: $enums.GAME_OUT_REASON.SHOOT})
     await service.gameService.settleGameOver(gameInstance._id)
 
     let newSkillStatus = []
@@ -1287,7 +1136,7 @@ class gameController extends BaseClass {
   async boomPlayer () {
     const { service, ctx, app } = this
     const { $helper, $model, $support, $ws, $enums } = app
-    const { game, player, action, gameTag, record } = $model
+    const { game, player, action, gameTag } = $model
     const { roomId, gameId } = ctx.query
     if(!roomId || roomId === ''){
       ctx.body = $helper.Result.fail(-1,'roomId不能为空！')
@@ -1339,41 +1188,23 @@ class gameController extends BaseClass {
     }
     await service.baseService.save(action, actionObject)
 
-    let recordObject = {
-      roomId: gameInstance.roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      view: [],
+    await service.recordService.actionRecord(gameInstance, null, {
       isCommon: 1,
-      isTitle: 0,
-      content: {
-        type: 'action',
-        text: $support.getPlayerFullName(currentPlayer) + '自爆！',
-        action: $enums.SKILL_ACTION_KEY.BOOM,
-        actionName: '自爆',
-        level: $enums.TEXT_COLOR.RED,
-        from: {
-          username: currentPlayer.username,
-          name: currentPlayer.name,
-          position: currentPlayer.position,
-          role: currentPlayer.role,
-          camp: currentPlayer.camp
-        },
-        to: {
-          name: '自爆',
-          role: $enums.SKILL_ACTION_KEY.BOOM
-        }
+      actionKey: $enums.SKILL_ACTION_KEY.BOOM,
+      level: $enums.TEXT_COLOR.RED,
+      text: $support.getPlayerFullName(currentPlayer) + '自爆！',
+      to: {
+        name: '自爆',
+        role: $enums.SKILL_ACTION_KEY.BOOM
       }
-    }
-    await service.baseService.save(record, recordObject)
+    })
     // 注册死亡
     let tagObject = {
       roomId: gameInstance.roomId,
       gameId: gameInstance._id,
       day: gameInstance.day,
       stage: gameInstance.stage,
-      dayStatus: gameInstance.stage < 4 ? 1 : 2,
+      dayStatus: $support.getDayAndNightString(gameInstance.stage),
       desc: $enums.SKILL_ACTION_KEY.BOOM,
       mode: $enums.GAME_TAG_MODE.DIE,
       target: currentPlayer.username,
@@ -1382,53 +1213,13 @@ class gameController extends BaseClass {
     }
     await service.baseService.save(gameTag, tagObject)
 
-    let deadRecord = {
-      roomId: gameInstance.roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      view: [],
-      isCommon: 1,
-      isTitle: 0,
-      content: {
-        type: 'action',
-        action: $enums.SKILL_ACTION_KEY.DIE,
-        actionName: '死亡',
-        level: $enums.TEXT_COLOR.RED,
-        from: {
-          username: currentPlayer.username,
-          name: currentPlayer.name,
-          position: currentPlayer.position,
-          role: currentPlayer.role,
-          camp: currentPlayer.camp
-        },
-        to: {
-          role: 'out',
-          name: '出局'
-        }
-      }
-    }
-    await service.baseService.save(record, deadRecord)
+    await service.recordService.deadRecord(gameInstance)
 
     await service.baseService.updateById(player, currentPlayer._id,{status: 0, outReason: $enums.GAME_OUT_REASON.BOOM})
     let gameResult = await service.gameService.settleGameOver(gameInstance._id)
     if(gameResult.result && gameResult.data === 'N'){
       // 游戏未结束，增加record
-      let recordObjectNight = {
-        roomId: roomId,
-        gameId: gameInstance._id,
-        day: gameInstance.day + 1,
-        stage: gameInstance.stage,
-        view: [],
-        isCommon: 1,
-        isTitle: 0,
-        content: {
-          text: '天黑请闭眼。',
-          type: 'text',
-          level: $enums.TEXT_COLOR.BLACK
-        }
-      }
-      await service.baseService.save(record, recordObjectNight)
+      await service.recordService.nightBeginRecord(gameInstance, gameInstance.day + 1)
       // 重置阶段
       await service.stageService.newRound(gameInstance._id)
       // 修改阶段
@@ -1480,7 +1271,7 @@ class gameController extends BaseClass {
   async gameDestroy () {
     const { service, ctx, app } = this
     const { $helper, $model, $ws, $nodeCache, $enums } = app
-    const { game, record, room } = $model
+    const { game } = $model
     const { roomId, gameId } = ctx.query
     if(!roomId || roomId === ''){
       ctx.body = $helper.Result.fail(-1,'roomId不能为空！')
@@ -1490,7 +1281,6 @@ class gameController extends BaseClass {
       ctx.body = $helper.Result.fail(-1,'gameId不能为空！')
       return
     }
-    let roomInstance = await service.baseService.queryById(room, roomId)
     let gameInstance = await service.baseService.queryById(game, gameId)
     if(!gameInstance){
       ctx.body = $helper.Result.fail(-1,'游戏不存在！')
@@ -1504,14 +1294,7 @@ class gameController extends BaseClass {
     let update = {status: $enums.GAME_STATUS.EXCEPTION}
     await service.baseService.updateById(game, gameInstance._id, update)
 
-    let gameRecord = {
-      roomId: roomInstance._id,
-      gameId: gameInstance._id,
-      content: '房主结束了该场游戏，游戏已结束！',
-      isCommon: 1,
-      isTitle: 0
-    }
-    await service.baseService.save(record, gameRecord)
+    await service.recordService.gameOverRecord(gameInstance)
 
     if(app.$timer[gameInstance._id]){
       $nodeCache.set('game-time-' + gameInstance._id, -1)
@@ -1624,7 +1407,7 @@ class gameController extends BaseClass {
    */
   async gameSettings () {
     const { ctx, app } = this
-    const { $helper,$constants } = app
+    const { $helper, $constants } = app
     const { mode } = ctx.query
     if(!mode || mode === ''){
       ctx.body = $helper.Result.fail(-1,'游戏板子不能为空！')

@@ -154,31 +154,37 @@ module.exports = {
   PLAYER_ROLE_MAP: {
     wolf: {
       camp: enums.GAME_CAMP.WOLF,
+      campName: '狼人阵营',
       name: '狼人',
       key: enums.GAME_ROLE.WOLF
     },
     villager: {
       camp: enums.GAME_CAMP.CLERIC_AND_VILLAGER,
+      campName: '好人阵营',
       name: '平民',
       key: enums.GAME_ROLE.VILLAGER
     },
     predictor: {
       camp: enums.GAME_CAMP.CLERIC_AND_VILLAGER,
+      campName: '好人阵营',
       name: '预言家',
       key: enums.GAME_ROLE.PREDICTOR
     },
     witch: {
       camp: enums.GAME_CAMP.CLERIC_AND_VILLAGER,
+      campName: '好人阵营',
       name: '女巫',
       key: enums.GAME_ROLE.WITCH
     },
     hunter: {
       camp: enums.GAME_CAMP.CLERIC_AND_VILLAGER,
+      campName: '好人阵营',
       name: '猎人',
       key: enums.GAME_ROLE.HUNTER
     },
     guard: {
       camp: enums.GAME_CAMP.CLERIC_AND_VILLAGER,
+      campName: '好人阵营',
       name: '守卫',
       key: enums.GAME_ROLE.GUARD
     }
@@ -235,7 +241,30 @@ module.exports = {
       key: 'guard'
     }
   },
-  broadcastMap: {
+  JUMP_MAP: {
+    'wolf': '空刀',
+    'predictor': '空验',
+    'witch': '空过',
+    'guard': '空守'
+  },
+  CAMP_MAP: {
+    'wolf': {
+      key: 'wolf',
+      value: 0,
+      name: '狼人阵营',
+    },
+    'cleric_and_villager': {
+      key: 'cleric_and_villager',
+      value: 1,
+      name: '好人阵营',
+    },
+    'third': {
+      key: 'third',
+      value: 2,
+      name: '第三方阵营',
+    }
+  },
+  BROADCAST_MAP: {
     'ready': [
       {
         text: '请确认自己的身份，准备开始游戏，天黑请闭眼...',

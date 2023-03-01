@@ -91,7 +91,7 @@ const Record = (props) => {
                           ) : null
                         }
                         {
-                          record.content.type === 'action' ? (
+                          (record.content.type === 'action' || record.content.type === 'dead') ? (
                             <div className="action-cell FBH FBAC">
                               <div className="from-wrap FBAC FBH">
                                 {

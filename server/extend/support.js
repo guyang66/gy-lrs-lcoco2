@@ -23,6 +23,9 @@ module.exports = app => ({
     if(!player){
       return ''
     }
+    if(!player.username){
+      return  ''
+    }
     return '' + player.position + '号（' + (name ? name : player.name) + ')'
   },
 
@@ -119,9 +122,33 @@ module.exports = app => ({
     if(!target){
       return null
     }
-    return useString ? target.campString : target.camp
+    return useString ? target.campName : target.camp
   },
 
+  /**
+   * 获取角色名字
+   * @param role
+   * @returns {null|*}
+   */
+  getRoleName (role) {
+    const { $constants } = app
+    const { PLAYER_ROLE_MAP } = $constants
+    if(!role){
+      return null
+    }
+    let target = PLAYER_ROLE_MAP[role]
+    if(!target){
+      return null
+    }
+    return target.name
+  },
+
+  /**
+   * 获取指定技能技能
+   * @param key
+   * @param skills
+   * @returns {null|*}
+   */
   getSkillByKey (key, skills) {
     if(!key || key === ''){
       return null
