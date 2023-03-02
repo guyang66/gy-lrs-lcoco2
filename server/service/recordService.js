@@ -174,7 +174,7 @@ class recordService extends BaseClass{
       isCommon: 1,
       isTitle: 0,
       content: {
-        type: 'dead',
+        type: 'action',
         action: $enums.SKILL_ACTION_KEY.DIE,
         actionName: '死亡',
         level: $enums.TEXT_COLOR.RED,
@@ -315,13 +315,13 @@ class recordService extends BaseClass{
   }
 
   /**
-   * 投票事件
+   * 发言顺序事件
    * @param gameInstance
    * @param targetPlayer
    * @param randomOrder
    * @returns {Promise<{result}>}
    */
-  async voteRecord (gameInstance, targetPlayer, randomOrder) {
+  async speakRecord (gameInstance, targetPlayer, randomOrder) {
     const { service, app } = this
     const { $helper, $model, $enums, $support } = app
     const { record } = $model
@@ -484,6 +484,69 @@ class recordService extends BaseClass{
     return $helper.wrapResult(true, 'ok')
   }
 
+  /**
+   * 投票结果事件
+   * @param gameInstance
+   * @param map
+   * @param key
+   * @returns {Promise<{result}>}
+   */
+  async voteRecord (gameInstance, map, key) {
+    const { service, app } = this
+    const { $helper, $model, $enums } = app
+    const { record, player } = $model
+    if(!gameInstance || gameInstance === ''){
+      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+    }
+    // 排序
+    let content = map[key]
+    content = content.sort(function (a,b){
+      return a.position - b.position
+    })
+    let votePlayerString = ''
+    let toPlayer = await service.baseService.queryOne(player, {roomId: gameInstance.roomId, gameId: gameInstance._id, username: key})
+    for(let i = 0; i < content.length; i++){
+      let fromPlayer = await service.baseService.queryOne(player, {roomId: gameInstance.roomId, gameId: gameInstance._id, username: content[i].username})
+      if(i !== 0){
+        votePlayerString = votePlayerString + '、'
+      }
+      votePlayerString = votePlayerString + fromPlayer.position + '号'
+    }
+    let voteResultString = votePlayerString + '投票给了' + toPlayer.position + '号玩家（' + toPlayer.name + ')'
+    let saveRecord = {
+      roomId: gameInstance.roomId,
+      gameId: gameInstance._id,
+      day: gameInstance.day,
+      stage: gameInstance.stage,
+      view: [],
+      isCommon: 1,
+      isTitle: 0,
+      content: {
+        type: 'action',
+        actionName: '投票',
+        text: voteResultString,
+        action: $enums.SKILL_ACTION_KEY.VOTE,
+        level: $enums.TEXT_COLOR.BLUE,
+        from: {
+          username: null,
+          name: votePlayerString,
+          position: null,
+          role: null,
+          camp: null
+        },
+        to: {
+          username: toPlayer.username,
+          name: '共' + content.length + '票',
+          position: toPlayer.position,
+          role: null,
+          camp: null
+        }
+      }
+    }
+
+    await service.baseService.save(record, saveRecord)
+    return $helper.wrapResult(true, 'ok')
+  }
   /**
    * 放逐事件
    * @param gameInstance

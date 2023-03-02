@@ -93,9 +93,9 @@ module.exports = {
     DEAD: 0 // 死亡/出局
   },
   GAME_TAG_MODE: {
-    DIE: 1,
-    SPEAK_ORDER: 2,
-    VOTE_PK: 3
+    DIE: 1, // 死亡出局
+    SPEAK_ORDER: 2, // 发言顺序
+    VOTE_PK: 3 // 平票pk
   },
   TEXT_COLOR: {
     BLACK: 1, // 黑色 #000000

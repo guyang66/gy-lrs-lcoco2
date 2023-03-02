@@ -361,6 +361,7 @@ class gameController extends BaseClass {
     const filterRecord = (record) => {
 
       const condition = (target, action) => {
+        // 如果是观战者，返回全信息
         if(isOb){
           return false
         }
@@ -506,7 +507,7 @@ class gameController extends BaseClass {
     }
     await service.baseService.save(action, actionObject)
 
-    // 生成一条recor
+    // 生成一条记录
     await service.recordService.actionRecord(gameInstance,targetPlayer, {level: $enums.TEXT_COLOR.GREEN, actionKey: $enums.SKILL_ACTION_KEY.CHECK})
 
     let r = {

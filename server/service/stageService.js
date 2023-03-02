@@ -292,7 +292,7 @@ class stageService extends BaseClass{
       position: targetPlayer.position
     }
     await service.baseService.save(gameTag, tagObject)
-    await service.recordService.voteRecord(gameInstance, targetPlayer, randomOrder)
+    await service.recordService.speakRecord(gameInstance, targetPlayer, randomOrder)
     return $helper.wrapResult(true, '')
   }
 
@@ -356,42 +356,7 @@ class stageService extends BaseClass{
     })
 
     for(let key in voteResultMap){
-      let content = voteResultMap[key]
-      // 排序
-      content = content.sort(function (a,b){
-        return a.position - b.position
-      })
-      let votePlayerString = ''
-      let toPlayer = await service.baseService.queryOne(player, {roomId: gameInstance.roomId, gameId: gameInstance._id, username: key})
-      for(let i = 0; i < content.length; i++){
-        let fromPlayer = await service.baseService.queryOne(player, {roomId: gameInstance.roomId, gameId: gameInstance._id, username: content[i].username})
-        if(i !== 0){
-          votePlayerString = votePlayerString + '、'
-        }
-        votePlayerString = votePlayerString + fromPlayer.position + '号'
-      }
-      let voteResultString = votePlayerString + '投票给了' + toPlayer.position + '号玩家（' + toPlayer.name + ')'
-      await service.recordService.actionRecord(gameInstance, null, {
-        form: {
-          username: null,
-          name: votePlayerString,
-          position: null,
-          role: null,
-          camp: null
-        },
-        to: {
-          username: toPlayer.username,
-          name: toPlayer.position + '号（共' + content.length + '票）',
-          position: toPlayer.position,
-          role: null,
-          camp: null
-        },
-        actionKey: $enums.SKILL_ACTION_KEY.VOTE,
-        actionName: '投票',
-        text: voteResultString,
-        level: $enums.TEXT_COLOR.BLUE,
-        isCommon: 1
-      })
+      await service.recordService.voteRecord(gameInstance, voteResultMap, key)
     }
 
     // 处理弃票record
