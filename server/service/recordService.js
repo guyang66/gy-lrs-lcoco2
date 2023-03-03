@@ -90,29 +90,48 @@ class recordService extends BaseClass{
    * 玩家动作事件
    * @returns {Promise<void>}
    */
-  async actionRecord (gameInstance, targetPlayer, content) {
+  async actionRecord (gameInstance, fromPlayer, toPlayer, actionKey) {
     const { service, app } = this
-    const { $helper, $model, $enums, $constants } = app
-    const { record, player } = $model
+    const { $helper, $model, $enums, $constants, $support } = app
+    const { record } = $model
     const { SKILL_MAP } = $constants
-    let {isCommon = 0, isTitle = 0, actionKey, level = $enums.TEXT_COLOR.BLACK, actionName, text, from, to} = content
     if(!gameInstance || gameInstance === ''){
       return $helper.wrapResult(false, 'gameInstance为空！', -1)
     }
-    let currentUser = await service.baseService.userInfo()
-    let currentPlayer = await service.baseService.queryOne(player, {roomId: gameInstance.roomId, gameId: gameInstance._id, username: currentUser.username})
-    if(!actionName){
-      actionName = SKILL_MAP[currentPlayer.role].find(item=>{
-        return item.key === actionKey
-      }).name
+    if(!actionKey || actionKey === ''){
+      return $helper.wrapResult(false, 'actionKey为空！', -1)
     }
 
-    let targetText = text
-    if(!targetText || targetText === ''){
-      targetText = `${currentPlayer.roleName}：${currentPlayer.position}号玩家（${currentPlayer.name}）${actionName}了${targetPlayer.position}号玩家（${targetPlayer.name}）`
-      if(actionKey === $enums.SKILL_ACTION_KEY.CHECK){
-        targetText = targetText + `的身份为：${targetPlayer.campName}`
-      }
+    let action = SKILL_MAP[fromPlayer.role].find(item=>{
+      return item.key === actionKey
+    })
+
+    let actionName = action?.name
+
+    let targetText = ''
+    let textLevel = $enums.TEXT_COLOR.BLACK
+    switch (actionKey) {
+      case $enums.SKILL_ACTION_KEY.CHECK:
+        targetText = $support.getPlayerFullName(fromPlayer) + fromPlayer.roleName + '查验了' + $support.getPlayerFullName(toPlayer) + '的身份为' + toPlayer.campName
+        textLevel = $enums.TEXT_COLOR.GREEN
+        break;
+      case $enums.SKILL_ACTION_KEY.DEFEND:
+        targetText = $support.getPlayerFullName(fromPlayer) + fromPlayer.roleName + '守护了' + $support.getPlayerFullName(toPlayer)
+        textLevel = $enums.TEXT_COLOR.GREEN
+        break;
+      case $enums.SKILL_ACTION_KEY.POISON:
+        targetText = $support.getPlayerFullName(fromPlayer) + fromPlayer.roleName + '使用毒药毒死了' + $support.getPlayerFullName(toPlayer)
+        textLevel = $enums.TEXT_COLOR.PINK
+        break;
+      case $enums.SKILL_ACTION_KEY.ANTIDOTE:
+        targetText = $support.getPlayerFullName(fromPlayer) + fromPlayer.roleName + '使用解药救下了' + $support.getPlayerFullName(toPlayer)
+        textLevel = $enums.TEXT_COLOR.GREEN
+        break;
+      case $enums.SKILL_ACTION_KEY.SHOOT:
+        targetText = $support.getPlayerFullName(fromPlayer) + fromPlayer.roleName + '发动开枪带走了' + $support.getPlayerFullName(toPlayer)
+        textLevel = $enums.TEXT_COLOR.ORANGE
+        break;
+      default:
     }
 
     let saverRecord = {
@@ -121,27 +140,27 @@ class recordService extends BaseClass{
       day: gameInstance.day,
       stage: gameInstance.stage,
       view: [],
-      isCommon: isCommon,
-      isTitle: isTitle,
+      isCommon: 0,
+      isTitle: 0,
       content: {
         type: 'action',
         text: targetText,
         key: actionKey,
         actionName: actionName,
-        level: level,
-        from: from ? from : {
-          username: currentPlayer.username,
-          name: currentPlayer.name,
-          position: currentPlayer.position,
-          role: currentPlayer.role,
-          camp: currentPlayer.camp
+        level: textLevel,
+        from: {
+          username: fromPlayer.username,
+          name: fromPlayer.name,
+          position: fromPlayer.position,
+          role: fromPlayer.role,
+          camp: fromPlayer.camp
         },
-        to: to ? to : {
-          username: targetPlayer.username,
-          name: targetPlayer.name,
-          position: targetPlayer.position,
-          role: targetPlayer.role,
-          camp: targetPlayer.camp
+        to: {
+          username: toPlayer.username,
+          name: toPlayer.name,
+          position: toPlayer.position,
+          role: toPlayer.role,
+          camp: toPlayer.camp
         }
       }
     }
@@ -262,26 +281,39 @@ class recordService extends BaseClass{
   /**
    * 空过事件
    * @param gameInstance
-   * @param targetPlayer
+   * @param fromPlayer
    * @returns {Promise<{result}>}
    */
-  async emptyActionRecord (gameInstance, targetPlayer, content = {}) {
+  async emptyActionRecord (gameInstance, fromPlayer) {
     const { service, app } = this
     const { $helper, $model, $enums, $constants, $support } = app
     const { record } = $model
     const {JUMP_MAP} = $constants
-    let { actionName, status} = content
     if(!gameInstance || gameInstance === ''){
       return $helper.wrapResult(false, 'gameInstance为空！', -1)
     }
-    if(!targetPlayer){
+    if(!fromPlayer){
       return $helper.wrapResult(false, 'targetPlayer为空！', -1)
     }
 
-    let roleName = $support.getRoleName(targetPlayer.role)
-    if(!actionName){
-      actionName = JUMP_MAP[targetPlayer.role] || '空过'
+    let roleName = $support.getRoleName(fromPlayer.role)
+    let actionName = JUMP_MAP[fromPlayer.role] || '空过'
+
+    // 对女巫特殊处理
+    if(fromPlayer.role === $enums.GAME_ROLE.WITCH){
+      let skill = witchPlayer.skill
+      let has = false
+      // 查女巫的技能是否已经用完
+      skill.forEach(item=>{
+        if(item.status === $enums.SKILL_STATUS.AVAILABLE){
+          has = true
+        }
+      })
+      if(!has){
+        actionName = actionName + '（药已用完）'
+      }
     }
+
     let saveRecord = {
       roomId: gameInstance.roomId,
       gameId: gameInstance._id,
@@ -293,16 +325,16 @@ class recordService extends BaseClass{
       content: {
         type: 'action',
         key: $enums.SKILL_ACTION_KEY.JUMP,
-        text: $support.getPlayerFullName(targetPlayer) + `${roleName}${actionName}`,
+        text: $support.getPlayerFullName(fromPlayer) + `${roleName}${actionName}`,
         actionName: actionName,
         level: $enums.TEXT_COLOR.ORANGE,
         from: {
-          username: targetPlayer.username,
-          name: targetPlayer.name,
-          position: targetPlayer.position,
-          role: targetPlayer.role,
-          camp: targetPlayer.camp,
-          status: (status !== null && status !== undefined) ? status : targetPlayer.status
+          username: fromPlayer.username,
+          name: fromPlayer.name,
+          position: fromPlayer.position,
+          role: fromPlayer.role,
+          camp: fromPlayer.camp,
+          status: fromPlayer.status
         },
         to: {
           username: null,
@@ -701,6 +733,97 @@ class recordService extends BaseClass{
             level: randomOrder === 1 ? $enums.TEXT_COLOR.GREEN : $enums.TEXT_COLOR.RED,
           }
         ]
+      }
+    }
+    await service.baseService.save(record, saveRecord)
+    return $helper.wrapResult(true, 'ok')
+  }
+
+  /**
+   * 狼人团队袭击结果事件
+   * @param gameInstance
+   * @param toPlayer
+   * @returns {Promise<{result}>}
+   */
+  async wolfTeamAssaultRecord (gameInstance, toPlayer) {
+    const { service, app } = this
+    const { $helper, $model, $enums, $support } = app
+    const { record } = $model
+    if(!gameInstance || gameInstance === ''){
+      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+    }
+    let saveRecord = {
+      roomId: gameInstance.roomId,
+      gameId: gameInstance._id,
+      day: gameInstance.day,
+      stage: gameInstance.stage,
+      view: [],
+      isCommon: 0,
+      isTitle: 0,
+      content: {
+        text: '狼人今晚袭击了：' + $support.getPlayerFullName(toPlayer),
+        type: 'action',
+        key: $enums.SKILL_ACTION_KEY.KILL,
+        actionName: '袭击',
+        level: $enums.TEXT_COLOR.RED,
+        from: {
+          username: null,
+          name: '狼人',
+          position: null,
+          role: $enums.GAME_ROLE.WOLF,
+          camp: $enums.GAME_CAMP.WOLF,
+        },
+        to: {
+          username: toPlayer.username,
+          name: toPlayer.name,
+          position: toPlayer.position,
+          role: toPlayer.role,
+          camp: toPlayer.camp,
+        }
+      }
+    }
+    await service.baseService.save(record, saveRecord)
+    return $helper.wrapResult(true, 'ok')
+  }
+
+  /**
+   * 狼人自爆事件
+   * @param gameInstance
+   * @param fromPlayer
+   * @returns {Promise<{result}>}
+   */
+  async boomRecord (gameInstance, fromPlayer) {
+    const { service, app } = this
+    const { $helper, $model, $enums, $support } = app
+    const { record } = $model
+    if(!gameInstance || gameInstance === ''){
+      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+    }
+    let saveRecord = {
+      roomId: gameInstance.roomId,
+      gameId: gameInstance._id,
+      day: gameInstance.day,
+      stage: gameInstance.stage,
+      view: [],
+      isTitle: 0,
+      isCommon: 1,
+      content: {
+        type: 'action',
+        text: $support.getPlayerFullName(fromPlayer) + '自爆！',
+        action: $enums.SKILL_ACTION_KEY.BOOM,
+        actionName: '自爆',
+        level: $enums.TEXT_COLOR.RED,
+        from: {
+          username: fromPlayer.username,
+          name: fromPlayer.name,
+          position: fromPlayer.position,
+          role: fromPlayer.role,
+          camp: fromPlayer.camp
+        },
+        to: {
+          name: '自爆',
+          role: $enums.SKILL_ACTION_KEY.BOOM
+        }
       }
     }
     await service.baseService.save(record, saveRecord)

@@ -24,7 +24,8 @@ module.exports = app => {
       v10: { type: String }, // 座位7(玩家10)
       v11: { type: String }, // 座位8(玩家11)
       v12: { type: String }, // 座位9(玩家12)
-      winner: { type: Number, default: -1 }, // 0：狼人阵营胜利， 1：好人阵营胜利
+      winner: { type: Number, default: -1 },
+      winnerString: {type: String, default: '' },
       mode: {type: String, default: DEFAULT_MODE }, // 默认标准9人局
       playerCount: { type: Number, default: GAME_MODE.count }, // 默认9个人
       witchSaveSelf: { type: Number, default: GAME_MODE.CONFIG_DEFAULT.witchSaveOptions }, // 女巫自救：1：能自救，2：仅第一晚能自救，3：不能自救

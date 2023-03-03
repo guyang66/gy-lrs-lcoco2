@@ -46,13 +46,16 @@ module.exports = app => ({
     return 0
   },
 
+  /**
+   * 获取游戏赢家阵营
+   * @param gameInstance
+   * @returns {string}
+   */
   getGameWinner (gameInstance) {
-    const { $enums } = app
-    let winner
-    if(gameInstance.winner !== null && gameInstance.winner !== undefined){
-      winner = gameInstance.winner === $enums.GAME_CAMP.WOLF ? '狼人阵营' : '好人阵营'
+    if(gameInstance && gameInstance.winner > -1){
+      return '胜利者为：' + gameInstance.winnerString
     }
-    return  winner ? '胜利者为：' + winner : ''
+    return '胜利者为：无效的游戏结果'
   },
 
   /**

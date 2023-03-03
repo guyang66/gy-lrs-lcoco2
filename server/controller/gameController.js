@@ -7,15 +7,12 @@ class gameController extends BaseClass {
   async gameStart () {
     const { service, ctx, app } = this
     const { $helper, $model, $constants, $support, $ws, $enums } = app
-    const { room, game, user, player, vision } = $model
+    const { room, user, player, vision } = $model
     const { SKILL_MAP } = $constants
-    let { id, setting } = ctx.request.body
+    let { id, setting = {} } = ctx.request.body
     if(!id || id === ''){
       ctx.body = $helper.Result.fail(-1,'roomId不能为空！')
       return
-    }
-    if(!setting){
-      setting = {}
     }
     let roomInstance = await service.baseService.queryById(room, id)
     let currentUser = await service.baseService.userInfo()
@@ -30,6 +27,7 @@ class gameController extends BaseClass {
 
     let seatPlayerInfo = await service.roomService.getRoomSeatPlayer(id)
     if(!seatPlayerInfo.result){
+      // todo: errorcode 归口 ，怎么接入trycatch
       ctx.body = $helper.Result.fail(seatPlayerInfo.errorCode, seatPlayerInfo.errorMessage)
       return
     }
@@ -38,45 +36,8 @@ class gameController extends BaseClass {
       return
     }
 
-    let gameConfig = $constants.MODE[roomInstance.mode]
-    let stack = [].concat(gameConfig.STAGE).reverse()
-
-    const getGameSettingValue = (v1, v2) => {
-      if(!v1 && !v2){
-        return null
-      }
-      return v1 || v2
-    }
-
-    let gameObject = {
-      roomId: roomInstance._id,
-      owner: roomInstance.owner,
-      stageStack: stack,
-      v1: roomInstance.v1,
-      v2: roomInstance.v2,
-      v3: roomInstance.v3,
-      v4: roomInstance.v4,
-      v5: roomInstance.v5,
-      v6: roomInstance.v6,
-      v7: roomInstance.v7,
-      v8: roomInstance.v8,
-      v9: roomInstance.v9,
-      v10: roomInstance.v10,
-      v11: roomInstance.v11,
-      v12: roomInstance.v12,
-      playerCount: roomInstance.count,
-      predictorActionTime: getGameSettingValue(setting.predictorActionTime, gameConfig.CONFIG_DEFAULT.predictorActionTime),
-      wolfActionTime: getGameSettingValue(setting.wolfActionTime, gameConfig.CONFIG_DEFAULT.wolfActionTime),
-      witchActionTime: getGameSettingValue(setting.witchActionTime, gameConfig.CONFIG_DEFAULT.witchActionTime),
-      guardActionTime: getGameSettingValue(setting.guardActionTime, gameConfig.CONFIG_DEFAULT.guardActionTime),
-      witchSaveSelf: getGameSettingValue(setting.witchSaveSelf, gameConfig.CONFIG_DEFAULT.witchSaveSelf),
-      winCondition:getGameSettingValue(setting.winCondition, gameConfig.CONFIG_DEFAULT.winCondition),
-      flatTicket: getGameSettingValue(setting.flatTicket, gameConfig.CONFIG_DEFAULT.flatTicket),
-      mode: roomInstance.mode  // 标准9人局
-    }
-
     // 创建游戏实例
-    let gameInstance = await service.baseService.save(game, gameObject)
+    let gameInstance = await service.gameService.createNewGame(roomInstance, setting)
 
     // 直接进入第一阶段
     await service.gameService.updateStackToNext(gameInstance._id,{day: $enums.GAME_DAY_ORDER.FIRST_DAY, status: $enums.GAME_STATUS.GOING})
@@ -432,7 +393,7 @@ class gameController extends BaseClass {
    */
   async checkPlayer () {
     const { service, ctx, app } = this
-    const { $helper, $model, $ws, $enums } = app
+    const { $helper, $model, $ws, $enums, $support } = app
     const { game, player, vision, action } = $model
     const { roomId, gameId, username } = ctx.query
     if(!roomId || roomId === ''){
@@ -453,12 +414,7 @@ class gameController extends BaseClass {
       return
     }
     if(gameInstance.status === $enums.GAME_STATUS.FINISHED){
-      let winner
-      if(gameInstance.winner !== null && gameInstance.winner !== undefined){
-        winner = gameInstance.winner === $enums.GAME_CAMP.WOLF ? '狼人阵营' : '好人阵营'
-      }
-      let winnerString = winner ? '胜利者为：' + winner : null
-      ctx.body = $helper.Result.fail(-1,'游戏已经结束！' + winnerString)
+      ctx.body = $helper.Result.fail(-1,'游戏已经结束！' + $support.getGameWinner(gameInstance))
       return
     }
     let currentUser = await service.baseService.userInfo()
@@ -496,27 +452,10 @@ class gameController extends BaseClass {
     await service.baseService.updateById(vision, visionInstance._id, {status: $enums.VISION_STATUS.KNOWN_CAMP})
 
     // 生成一条action
-    let actionObject = {
-      roomId: roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      from: currentPlayer.username,
-      to: targetPlayer.username,
-      action: $enums.SKILL_ACTION_KEY.CHECK,
-    }
-    await service.baseService.save(action, actionObject)
+    await service.actionService.saveAction(gameInstance, $enums.SKILL_ACTION_KEY.CHECK ,currentPlayer.username, targetPlayer.username)
 
     // 生成一条记录
-    await service.recordService.actionRecord(gameInstance,targetPlayer, {level: $enums.TEXT_COLOR.GREEN, actionKey: $enums.SKILL_ACTION_KEY.CHECK})
-
-    let r = {
-      username: targetPlayer.username,
-      name: targetPlayer.name,
-      position: targetPlayer.position,
-      camp: targetPlayer.camp,
-      campName: targetPlayer.campName,
-    }
+    await service.recordService.actionRecord(gameInstance, currentPlayer, targetPlayer, $enums.SKILL_ACTION_KEY.CHECK)
 
     $ws.connections.forEach(function (conn) {
       let url = '/lrs/' + gameInstance.roomId
@@ -525,7 +464,7 @@ class gameController extends BaseClass {
       }
     })
 
-    ctx.body = $helper.Result.success(r)
+    ctx.body = $helper.Result.success({username: targetPlayer.username, name: targetPlayer.name, position: targetPlayer.position, camp: targetPlayer.camp, campName: targetPlayer.campName})
   }
 
   /**
@@ -534,7 +473,7 @@ class gameController extends BaseClass {
    */
   async defendPlayer () {
     const { service, ctx, app } = this
-    const { $helper, $model, $ws, $enums } = app
+    const { $helper, $model, $ws, $enums, $support } = app
     const { game, player, action } = $model
     const { roomId, gameId, username } = ctx.query
     if(!roomId || roomId === ''){
@@ -555,12 +494,7 @@ class gameController extends BaseClass {
       return
     }
     if(gameInstance.status === $enums.GAME_STATUS.FINISHED){
-      let winner
-      if(gameInstance.winner !== null && gameInstance.winner !== undefined){
-        winner = gameInstance.winner === $enums.GAME_CAMP.WOLF ? '狼人阵营' : '好人阵营'
-      }
-      let winnerString = winner ? '胜利者为：' + winner : null
-      ctx.body = $helper.Result.fail(-1,'游戏已经结束！' + winnerString)
+      ctx.body = $helper.Result.fail(-1,'游戏已经结束！' + $support.getGameWinner(gameInstance))
       return
     }
     let currentUser = await service.baseService.userInfo()
@@ -598,26 +532,9 @@ class gameController extends BaseClass {
     }
 
     // 生成一条action
-    let actionObject = {
-      roomId: roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      from: currentPlayer.username,
-      to: targetPlayer.username,
-      action: $enums.SKILL_ACTION_KEY.DEFEND,
-    }
-    await service.baseService.save(action, actionObject)
+    await service.actionService.saveAction(gameInstance, $enums.SKILL_ACTION_KEY.DEFEND, currentPlayer.username, targetPlayer.username)
 
-    await service.recordService.actionRecord(gameInstance, targetPlayer, {level: $enums.TEXT_COLOR.GREEN, actionKey: $enums.SKILL_ACTION_KEY.DEFEND})
-
-    let r = {
-      username: targetPlayer.username,
-      name: targetPlayer.name,
-      position: targetPlayer.position,
-      camp: targetPlayer.camp,
-      campName: targetPlayer.campName,
-    }
+    await service.recordService.actionRecord(gameInstance, currentPlayer, targetPlayer, $enums.SKILL_ACTION_KEY.DEFEND)
 
     $ws.connections.forEach(function (conn) {
       let url = '/lrs/' + gameInstance.roomId
@@ -626,7 +543,13 @@ class gameController extends BaseClass {
       }
     })
 
-    ctx.body = $helper.Result.success(r)
+    ctx.body = $helper.Result.success({
+      username: targetPlayer.username,
+      name: targetPlayer.name,
+      position: targetPlayer.position,
+      camp: targetPlayer.camp,
+      campName: targetPlayer.campName,
+    })
   }
 
   /**
@@ -635,7 +558,7 @@ class gameController extends BaseClass {
    */
   async assaultPlayer () {
     const { service, ctx, app } = this
-    const { $helper, $model, $enums } = app
+    const { $helper, $model, $enums, $support } = app
     const { game, player, action } = $model
     const { roomId, gameId, username } = ctx.query
     if(!roomId || roomId === ''){
@@ -656,12 +579,7 @@ class gameController extends BaseClass {
       return
     }
     if(gameInstance.status === $enums.GAME_STATUS.FINISHED){
-      let winner
-      if(gameInstance.winner !== null && gameInstance.winner !== undefined){
-        winner = gameInstance.winner === $enums.GAME_CAMP.WOLF ? '狼人阵营' : '好人阵营'
-      }
-      let winnerString = winner ? '胜利者为：' + winner : null
-      ctx.body = $helper.Result.fail(-1,'游戏已经结束！' + winnerString)
+      ctx.body = $helper.Result.fail(-1,'游戏已经结束！' + $support.getGameWinner(gameInstance))
       return
     }
     let currentUser = await service.baseService.userInfo()
@@ -693,16 +611,7 @@ class gameController extends BaseClass {
     // 袭击不一定会真的造成死亡，还有可能被女巫救，所以要在天亮时结算。
 
     // 生成一条action
-    let actionObject = {
-      roomId: roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      from: currentPlayer.username,
-      to: targetPlayer.username,
-      action: $enums.SKILL_ACTION_KEY.ASSAULT,
-    }
-    await service.baseService.save(action, actionObject)
+    await service.actionService.saveAction(gameInstance, $enums.SKILL_ACTION_KEY.ASSAULT, currentPlayer.username, targetPlayer.username)
 
     let r = {
       username: targetPlayer.username,
@@ -718,7 +627,7 @@ class gameController extends BaseClass {
    */
   async antidotePlayer () {
     const { service, ctx, app } = this
-    const { $helper, $model, $enums  } = app
+    const { $helper, $model, $enums, $support } = app
     const { game, player, action } = $model
     const { roomId, gameId } = ctx.query
     if(!roomId || roomId === ''){
@@ -735,12 +644,7 @@ class gameController extends BaseClass {
       return
     }
     if(gameInstance.status === $enums.GAME_STATUS.FINISHED){
-      let winner
-      if(gameInstance.winner !== null && gameInstance.winner !== undefined){
-        winner = gameInstance.winner === $enums.GAME_CAMP.WOLF ? '狼人阵营' : '好人阵营'
-      }
-      let winnerString = winner ? '胜利者为：' + winner : null
-      ctx.body = $helper.Result.fail(-1,'游戏已经结束！' + winnerString)
+      ctx.body = $helper.Result.fail(-1,'游戏已经结束！' + $support.getGameWinner(gameInstance))
       return
     }
     let currentUser = await service.baseService.userInfo()
@@ -784,35 +688,13 @@ class gameController extends BaseClass {
       return
     }
 
-    let killTarget = killAction.to
-    let actionObject = {
-      roomId: roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      from: currentPlayer.username,
-      to: killTarget,
-      action: $enums.SKILL_ACTION_KEY.ANTIDOTE,
-    }
-    await service.baseService.save(action, actionObject)
-    let diePlayer = await service.baseService.queryOne(player,{roomId: roomId, gameId: gameInstance._id, username: killTarget})
-    await service.recordService.actionRecord(gameInstance, diePlayer, {level: $enums.TEXT_COLOR.GREEN, actionKey: $enums.SKILL_ACTION_KEY.ANTIDOTE})
+    await service.actionService.saveAction(gameInstance, $enums.SKILL_ACTION_KEY.ANTIDOTE, currentPlayer.username, killAction.to)
+
+    let diePlayer = await service.baseService.queryOne(player,{roomId: roomId, gameId: gameInstance._id, username: killAction.to})
+    await service.recordService.actionRecord(gameInstance, currentPlayer, diePlayer, $enums.SKILL_ACTION_KEY.ANTIDOTE)
     // 修改解药状态
-    let newSkillStatus = []
-    skills.forEach(item=>{
-      if(item.key === $enums.SKILL_ACTION_KEY.ANTIDOTE){
-        newSkillStatus.push({
-          name: item.name,
-          key: item.key,
-          status: $enums.SKILL_STATUS.UNAVAILABLE
-        })
-      } else {
-        newSkillStatus.push(item)
-      }
-    })
-    await service.baseService.updateById(player, currentPlayer._id, {
-      skill: newSkillStatus
-    })
+    await service.playerService.modifyPlayerSkill(currentPlayer, $enums.SKILL_ACTION_KEY.ANTIDOTE, $enums.SKILL_STATUS.UNAVAILABLE)
+
     ctx.body = $helper.Result.success('ok')
   }
 
@@ -822,7 +704,7 @@ class gameController extends BaseClass {
    */
   async votePlayer () {
     const { service, ctx, app } = this
-    const { $helper, $model, $enums } = app
+    const { $helper, $model, $enums, $support } = app
     const { game, player, action } = $model
     const { roomId, gameId, username } = ctx.query
     if(!roomId || roomId === ''){
@@ -843,12 +725,7 @@ class gameController extends BaseClass {
       return
     }
     if(gameInstance.status === $enums.GAME_STATUS.FINISHED){
-      let winner
-      if(gameInstance.winner !== null && gameInstance.winner !== undefined){
-        winner = gameInstance.winner === $enums.GAME_CAMP.WOLF ? '狼人阵营' : '好人阵营'
-      }
-      let winnerString = winner ? '胜利者为：' + winner : null
-      ctx.body = $helper.Result.fail(-1,'游戏已经结束！' + winnerString)
+      ctx.body = $helper.Result.fail(-1,'游戏已经结束！' + $support.getGameWinner(gameInstance))
       return
     }
 
@@ -885,16 +762,8 @@ class gameController extends BaseClass {
 
     let targetPlayer = await service.baseService.queryOne(player, {roomId: roomId, gameId: gameInstance._id, username: username})
 
-    let actionObject = {
-      roomId: roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      from: currentPlayer.username,
-      to: targetPlayer.username,
-      action: $enums.SKILL_ACTION_KEY.VOTE,
-    }
-    await service.baseService.save(action, actionObject)
+    await service.actionService.saveAction(gameInstance, $enums.SKILL_ACTION_KEY.VOTE, currentPlayer.username, targetPlayer.username)
+
     let r = {
       username: targetPlayer.username,
       name: targetPlayer.name,
@@ -909,7 +778,7 @@ class gameController extends BaseClass {
    */
   async poisonPlayer () {
     const { service, ctx, app } = this
-    const { $helper, $model, $enums } = app
+    const { $helper, $model, $enums, $support } = app
     const { game, player, action } = $model
     const { roomId, gameId, username } = ctx.query
     if(!roomId || roomId === ''){
@@ -930,12 +799,7 @@ class gameController extends BaseClass {
       return
     }
     if(gameInstance.status === $enums.GAME_STATUS.FINISHED){
-      let winner
-      if(gameInstance.winner !== null && gameInstance.winner !== undefined){
-        winner = gameInstance.winner === $enums.GAME_CAMP.WOLF ? '狼人阵营' : '好人阵营'
-      }
-      let winnerString = winner ? '胜利者为：' + winner : null
-      ctx.body = $helper.Result.fail(-1,'游戏已经结束！' + winnerString)
+      ctx.body = $helper.Result.fail(-1,'游戏已经结束！' + $support.getGameWinner(gameInstance))
       return
     }
     if(gameInstance.stage !== $enums.GAME_STAGE.WITCH_STAGE) {
@@ -968,40 +832,14 @@ class gameController extends BaseClass {
       ctx.body = $helper.Result.fail(-1,'该玩家已出局！')
       return
     }
-
-    let actionObject = {
-      roomId: roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      from: currentPlayer.username,
-      to: targetPlayer.username,
-      action: $enums.SKILL_ACTION_KEY.POISON,
-    }
-    await service.baseService.save(action, actionObject)
-    let r = {
+    await service.actionService.saveAction(gameInstance, $enums.SKILL_ACTION_KEY.POISON, currentPlayer.username, targetPlayer.username)
+    //修改毒药状态
+    await service.playerService.modifyPlayerSkill(currentPlayer, $enums.SKILL_ACTION_KEY.POISON, $enums.SKILL_STATUS.UNAVAILABLE)
+    ctx.body = $helper.Result.success({
       username: targetPlayer.username,
       name: targetPlayer.name,
       position: targetPlayer.position,
-    }
-    //修改毒药状态
-    let newSkillStatus = []
-    let skills = currentPlayer.skill
-    skills.forEach(item=>{
-      if(item.key === $enums.SKILL_ACTION_KEY.POISON){
-        newSkillStatus.push({
-          name: item.name,
-          key: item.key,
-          status: $enums.SKILL_STATUS.UNAVAILABLE
-        })
-      } else {
-        newSkillStatus.push(item)
-      }
     })
-    await service.baseService.updateById(player, currentPlayer._id, {
-      skill: newSkillStatus
-    })
-    ctx.body = $helper.Result.success(r)
   }
 
   /**
@@ -1010,8 +848,8 @@ class gameController extends BaseClass {
    */
   async shootPlayer () {
     const { service, ctx, app } = this
-    const { $helper, $model, $support, $ws, $enums } = app
-    const { game, player, action, gameTag } = $model
+    const { $helper, $model, $ws, $enums, $support } = app
+    const { game, player, action } = $model
     const { roomId, gameId, username } = ctx.query
     if(!roomId || roomId === ''){
       ctx.body = $helper.Result.fail(-1,'roomId不能为空！')
@@ -1031,12 +869,7 @@ class gameController extends BaseClass {
       return
     }
     if(gameInstance.status === $enums.GAME_STATUS.FINISHED){
-      let winner
-      if(gameInstance.winner !== null && gameInstance.winner !== undefined){
-        winner = gameInstance.winner === $enums.GAME_CAMP.WOLF ? '狼人阵营' : '好人阵营'
-      }
-      let winnerString = winner ? '胜利者为：' + winner : null
-      ctx.body = $helper.Result.fail(-1,'游戏已经结束！' + winnerString)
+      ctx.body = $helper.Result.fail(-1,'游戏已经结束！' + $support.getGameWinner(gameInstance))
       return
     }
     if(gameInstance.stage !== $enums.GAME_STAGE.AFTER_NIGHT && gameInstance.stage !== $enums.GAME_STAGE.EXILE_FINISH_STAGE) {
@@ -1065,61 +898,18 @@ class gameController extends BaseClass {
       ctx.body = $helper.Result.fail(-1,'该玩家已出局！')
       return
     }
+    await service.actionService.saveAction(gameInstance, $enums.SKILL_ACTION_KEY.SHOOT, currentPlayer.username, targetPlayer.username)
 
-    let actionObject = {
-      roomId: roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      from: currentPlayer.username,
-      to: targetPlayer.username,
-      action: $enums.SKILL_ACTION_KEY.SHOOT,
-    }
-    await service.baseService.save(action, actionObject)
-
-    let r = {
-      username: targetPlayer.username,
-      name: targetPlayer.name,
-      position: targetPlayer.position,
-    }
-
-    await service.recordService.actionRecord(gameInstance, targetPlayer, {level: $enums.TEXT_COLOR.RED, actionKey: $enums.SKILL_ACTION_KEY.SHOOT})
+    await service.recordService.actionRecord(gameInstance, currentPlayer, targetPlayer, $enums.SKILL_ACTION_KEY.SHOOT)
 
     // 注册另一个玩家死亡
-    let tagObject = {
-      roomId: gameInstance.roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      dayStatus: $support.getDayAndNightString(gameInstance.stage),
-      desc: $enums.SKILL_ACTION_KEY.SHOOT,
-      mode: $enums.GAME_TAG_MODE.DIE,
-      target: targetPlayer.username,
-      name: targetPlayer.name,
-      position: targetPlayer.position
-    }
-    await service.baseService.save(gameTag, tagObject)
+    await service.tagService.deadTag(gameInstance, targetPlayer, $enums.GAME_OUT_REASON.SHOOT)
 
     await service.recordService.deadRecord(gameInstance, targetPlayer)
     await service.baseService.updateById(player, targetPlayer._id,{status: $enums.PLAYER_STATUS.DEAD, outReason: $enums.GAME_OUT_REASON.SHOOT})
     await service.gameService.settleGameOver(gameInstance._id)
 
-    let newSkillStatus = []
-    let skills = currentPlayer.skill
-    skills.forEach(item=>{
-      if(item.key === $enums.SKILL_ACTION_KEY.SHOOT){
-        newSkillStatus.push({
-          name: item.name,
-          key: item.key,
-          status: $enums.SKILL_STATUS.UNAVAILABLE
-        })
-      } else {
-        newSkillStatus.push(item)
-      }
-    })
-    await service.baseService.updateById(player, currentPlayer._id, {
-      skill: newSkillStatus
-    })
+    await service.playerService.modifyPlayerSkill(currentPlayer, $enums.SKILL_ACTION_KEY.SHOOT, $enums.SKILL_STATUS.UNAVAILABLE)
 
     $ws.connections.forEach(function (conn) {
       let url = '/lrs/' + gameInstance.roomId
@@ -1127,7 +917,8 @@ class gameController extends BaseClass {
         conn.sendText('refreshGame')
       }
     })
-    ctx.body = $helper.Result.success(r)
+
+    ctx.body = $helper.Result.success({username: targetPlayer.username, name: targetPlayer.name, position: targetPlayer.position})
   }
 
   /**
@@ -1136,8 +927,8 @@ class gameController extends BaseClass {
    */
   async boomPlayer () {
     const { service, ctx, app } = this
-    const { $helper, $model, $support, $ws, $enums } = app
-    const { game, player, action, gameTag } = $model
+    const { $helper, $model, $ws, $enums, $support } = app
+    const { game, player } = $model
     const { roomId, gameId } = ctx.query
     if(!roomId || roomId === ''){
       ctx.body = $helper.Result.fail(-1,'roomId不能为空！')
@@ -1153,12 +944,7 @@ class gameController extends BaseClass {
       return
     }
     if(gameInstance.status === $enums.GAME_STATUS.FINISHED){
-      let winner
-      if(gameInstance.winner !== null && gameInstance.winner !== undefined){
-        winner = gameInstance.winner === $enums.GAME_CAMP.WOLF ? '狼人阵营' : '好人阵营'
-      }
-      let winnerString = winner ? '胜利者为：' + winner : null
-      ctx.body = $helper.Result.fail(-1,'游戏已经结束！' + winnerString)
+      ctx.body = $helper.Result.fail(-1,'游戏已经结束！' + $support.getGameWinner(gameInstance))
       return
     }
     if(gameInstance.stage !== $enums.GAME_STAGE.SPEAK_STAGE) {
@@ -1178,42 +964,13 @@ class gameController extends BaseClass {
       return
     }
 
-    let actionObject = {
-      roomId: roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: currentPlayer.stage,
-      from: currentPlayer.username,
-      to: currentPlayer.username,
-      action: $enums.SKILL_ACTION_KEY.BOOM,
-    }
-    await service.baseService.save(action, actionObject)
+    await service.actionService.saveAction(gameInstance, $enums.SKILL_ACTION_KEY.BOOM, currentPlayer.username, currentPlayer.username)
 
-    await service.recordService.actionRecord(gameInstance, null, {
-      isCommon: 1,
-      actionKey: $enums.SKILL_ACTION_KEY.BOOM,
-      level: $enums.TEXT_COLOR.RED,
-      text: $support.getPlayerFullName(currentPlayer) + '自爆！',
-      to: {
-        name: '自爆',
-        role: $enums.SKILL_ACTION_KEY.BOOM
-      }
-    })
+    await service.recordService.boomRecord(gameInstance, currentPlayer)
     // 注册死亡
-    let tagObject = {
-      roomId: gameInstance.roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      dayStatus: $support.getDayAndNightString(gameInstance.stage),
-      desc: $enums.SKILL_ACTION_KEY.BOOM,
-      mode: $enums.GAME_TAG_MODE.DIE,
-      target: currentPlayer.username,
-      name: currentPlayer.name,
-      position: currentPlayer.position
-    }
-    await service.baseService.save(gameTag, tagObject)
+    await service.tagService.deadTag(gameInstance, currentPlayer, $enums.GAME_OUT_REASON.BOOM)
 
+    // 生成一次广播事件
     await service.recordService.deadRecord(gameInstance)
 
     await service.baseService.updateById(player, currentPlayer._id,{status: 0, outReason: $enums.GAME_OUT_REASON.BOOM})
@@ -1260,7 +1017,7 @@ class gameController extends BaseClass {
     }
     let result = {
       winner: gameInstance.winner,
-      winnerString:  gameInstance.winner === 1 ? '好人阵营' : '狼人阵营'
+      winnerString:  gameInstance.winnerString
     }
     ctx.body = $helper.Result.success(result)
   }

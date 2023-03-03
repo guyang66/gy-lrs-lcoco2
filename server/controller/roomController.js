@@ -63,17 +63,7 @@ class roomController extends BaseClass {
       return
     }
 
-    let waitPlayerArray = []
-    for(let i = 0; i < roomInstance.wait.length; i++){
-      let item = roomInstance.wait[i]
-      let player = await service.baseService.queryOne(user, {username: item})
-      if(player){
-        waitPlayerArray.push({
-          username: player.username,
-          name: player.name
-        })
-      }
-    }
+    let waitPlayerArray = await service.roomService.getWaitPlayerList(roomInstance)
 
     let seatPlayerInfo = await service.roomService.getRoomSeatPlayer(id)
     if(!seatPlayerInfo.result){

@@ -124,5 +124,31 @@ class roomService extends BaseClass{
     return $helper.wrapResult(true, 'ok')
   }
 
+  /**
+   * 获取房间等待区玩家列表
+   * @param roomInstance
+   * @returns {Promise<{result}|[]>}
+   */
+  async getWaitPlayerList (roomInstance) {
+    const { service, app} = this
+    const { $helper, $model } = app
+    const { user } = $model
+    if(!roomInstance){
+      return $helper.wrapResult(false, 'roomInstance为空！', -1)
+    }
+    let waitPlayerArray = []
+    for(let i = 0; i < roomInstance.wait.length; i++){
+      let item = roomInstance.wait[i]
+      let player = await service.baseService.queryOne(user, {username: item})
+      if(player){
+        waitPlayerArray.push({
+          username: player.username,
+          name: player.name
+        })
+      }
+    }
+    return waitPlayerArray
+  }
+
 }
 module.exports = roomService;

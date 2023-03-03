@@ -107,49 +107,57 @@ module.exports = {
     },
   },
   SKILL_MAP: {
-    wolf: [
-      {
-        name: '袭击',
-        key: enums.SKILL_ACTION_KEY.ASSAULT,
-        status: enums.SKILL_STATUS.AVAILABLE
-      },{
-        name: '自爆',
-        key: enums.SKILL_ACTION_KEY.BOOM,
-        status: enums.SKILL_STATUS.AVAILABLE,
-      }],
-    predictor: [
-      {
-        name: '查验',
-        key: enums.SKILL_ACTION_KEY.CHECK,
-        status: enums.SKILL_STATUS.AVAILABLE,
-      }],
-    witch: [
-      {
-        name: '解药',
-        key: enums.SKILL_ACTION_KEY.ANTIDOTE,
-        status: enums.SKILL_STATUS.AVAILABLE,
-      },
-      {
-        name: '毒药',
-        key: enums.SKILL_ACTION_KEY.POISON,
-        status: enums.SKILL_STATUS.AVAILABLE,
-      }
-    ],
-    hunter: [
-      {
-        name: '开枪',
-        key: enums.SKILL_ACTION_KEY.SHOOT,
-        status: enums.SKILL_STATUS.UNAVAILABLE, // 猎人最开始不能开枪, 需要满足条件之后才能发动技能
-      }
-    ],
+    wolf:
+      [
+        {
+          name: '袭击',
+          key: enums.SKILL_ACTION_KEY.ASSAULT,
+          status: enums.SKILL_STATUS.AVAILABLE
+        },
+        {
+          name: '自爆',
+          key: enums.SKILL_ACTION_KEY.BOOM,
+          status: enums.SKILL_STATUS.AVAILABLE,
+        }
+      ],
+    predictor:
+      [
+        {
+          name: '查验',
+          key: enums.SKILL_ACTION_KEY.CHECK,
+          status: enums.SKILL_STATUS.AVAILABLE,
+        }
+      ],
+    witch:
+      [
+        {
+          name: '解药',
+          key: enums.SKILL_ACTION_KEY.ANTIDOTE,
+          status: enums.SKILL_STATUS.AVAILABLE,
+        },
+        {
+          name: '毒药',
+          key: enums.SKILL_ACTION_KEY.POISON,
+          status: enums.SKILL_STATUS.AVAILABLE,
+        }
+      ],
+    hunter:
+      [
+        {
+          name: '开枪',
+          key: enums.SKILL_ACTION_KEY.SHOOT,
+          status: enums.SKILL_STATUS.UNAVAILABLE, // 猎人最开始不能开枪, 需要满足条件之后才能发动技能
+        }
+      ],
     villager: [],
-    guard: [
-      {
-        name: '守护',
-        key: enums.SKILL_ACTION_KEY.DEFEND,
-        status: enums.SKILL_STATUS.AVAILABLE,
-      }
-    ]
+    guard:
+      [
+        {
+          name: '守护',
+          key: enums.SKILL_ACTION_KEY.DEFEND,
+          status: enums.SKILL_STATUS.AVAILABLE,
+        }
+     ]
   },
   PLAYER_ROLE_MAP: {
     wolf: {

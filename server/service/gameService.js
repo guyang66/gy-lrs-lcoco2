@@ -1,5 +1,55 @@
 const BaseClass = require('../base/BaseClass')
 class gameService extends BaseClass{
+
+  /**
+   * 创建一个新游戏
+   * @param roomInstance
+   * @param setting
+   * @returns {Promise<*>}
+   */
+  async createNewGame (roomInstance, setting) {
+    const { service, app } = this
+    const { $model, $constants, $helper} = app
+    const { game} = $model
+    let gameConfig = $constants.MODE[roomInstance.mode]
+    let stack = [].concat(gameConfig.STAGE).reverse()
+    if(!roomInstance){
+      return $helper.wrapResult(false, 'roomInstance为空！', -1)
+    }
+    const getGameSettingValue = (v1, v2) => {
+      if(!v1 && !v2){
+        return null
+      }
+      return v1 || v2
+    }
+    let newGame = {
+      roomId: roomInstance._id,
+      owner: roomInstance.owner,
+      stageStack: stack,
+      v1: roomInstance.v1,
+      v2: roomInstance.v2,
+      v3: roomInstance.v3,
+      v4: roomInstance.v4,
+      v5: roomInstance.v5,
+      v6: roomInstance.v6,
+      v7: roomInstance.v7,
+      v8: roomInstance.v8,
+      v9: roomInstance.v9,
+      v10: roomInstance.v10,
+      v11: roomInstance.v11,
+      v12: roomInstance.v12,
+      playerCount: roomInstance.count,
+      predictorActionTime: getGameSettingValue(setting.predictorActionTime, gameConfig.CONFIG_DEFAULT.predictorActionTime),
+      wolfActionTime: getGameSettingValue(setting.wolfActionTime, gameConfig.CONFIG_DEFAULT.wolfActionTime),
+      witchActionTime: getGameSettingValue(setting.witchActionTime, gameConfig.CONFIG_DEFAULT.witchActionTime),
+      guardActionTime: getGameSettingValue(setting.guardActionTime, gameConfig.CONFIG_DEFAULT.guardActionTime),
+      witchSaveSelf: getGameSettingValue(setting.witchSaveSelf, gameConfig.CONFIG_DEFAULT.witchSaveSelf),
+      winCondition:getGameSettingValue(setting.winCondition, gameConfig.CONFIG_DEFAULT.winCondition),
+      flatTicket: getGameSettingValue(setting.flatTicket, gameConfig.CONFIG_DEFAULT.flatTicket),
+      mode: roomInstance.mode
+    }
+    return await service.baseService.save(game, newGame)
+  }
   /**
    * 获取可见的玩家信息
    * @returns {Promise<{result}>}
@@ -7,7 +57,7 @@ class gameService extends BaseClass{
   async getPlayerInfoInGame (id) {
     const { service, app } = this
     const { $helper, $model, $constants, $support, $enums } = app
-    const { game, player, user, vision, gameTag, room, action } = $model
+    const { game, player, user, vision, room, action } = $model
     const { PLAYER_ROLE_MAP } = $constants
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)
@@ -18,16 +68,7 @@ class gameService extends BaseClass{
     let isOb = $support.isOb(roomInstance, currentUser.username)
     let playerCount = gameInstance.playerCount || 9
     let playerInfo = []
-
-    let pkTag = await service.baseService.queryOne(gameTag, {
-      roomId: gameInstance.roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      mode: $enums.GAME_TAG_MODE.VOTE_PK,
-      desc: 'pkPlayer'
-    })
-    let pkPlayer = pkTag ? pkTag.value2 : []
-
+    let pkPlayer = await service.tagService.getTodayPkPlayer(gameInstance)
     let currentPlayer = await service.baseService.queryOne(player, {roomId: gameInstance.roomId, gameId: gameInstance._id, username: currentUser.username})
     let defendAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day - 1, stage: $enums.GAME_STAGE.GUARD_STAGE, action: $enums.SKILL_ACTION_KEY.DEFEND})
 
@@ -54,7 +95,7 @@ class gameService extends BaseClass{
           username: otherPlayer.username,
           isSelf: un === currentUser.username, // 是否是自己
           camp: otherPlayer.camp, // 是否知晓阵营
-          campName: otherPlayer.camp === $enums.GAME_CAMP.CLERIC_AND_VILLAGER ? '好人阵营' : '狼人阵营', // 是否知晓阵营
+          campName: $support.getCampByRole(otherPlayer.role, true),
           status: otherPlayer.status, // 是否死亡
           role: otherPlayer.role, // 是否知晓角色
           roleName: PLAYER_ROLE_MAP[otherPlayer.role] ? PLAYER_ROLE_MAP[otherPlayer.role].name : '', // 是否知晓角色
@@ -72,7 +113,7 @@ class gameService extends BaseClass{
         username: otherUser.username,
         isSelf: un === currentUser.username, // 是否是自己
         camp: visionInstance.status === $enums.VISION_STATUS.UNKNOWN ? null : otherPlayer.camp, // 是否知晓阵营
-        campName: visionInstance.status === $enums.VISION_STATUS.UNKNOWN ? null : (otherPlayer.camp === $enums.GAME_CAMP.CLERIC_AND_VILLAGER ? '好人阵营' : '狼人阵营'),
+        campName: visionInstance.status === $enums.VISION_STATUS.UNKNOWN ? null : $support.getCampByRole(otherPlayer.role, true),
         status: otherPlayer.status, // 是否死亡
         role: visionInstance.status === $enums.VISION_STATUS.KNOWN_ROLE ? otherPlayer.role : null, // 是否知晓角色
         roleName: visionInstance.status === $enums.VISION_STATUS.KNOWN_ROLE ? (PLAYER_ROLE_MAP[otherPlayer.role] ? PLAYER_ROLE_MAP[otherPlayer.role].name : '') : null,
@@ -210,7 +251,7 @@ class gameService extends BaseClass{
     if(gameInstance.status === $enums.GAME_STATUS.FINISHED){
       let info = []
       info.push({text: '游戏结束！', level: $enums.TEXT_COLOR.BLACK})
-      info.push({text: gameInstance.winner === $enums.GAME_CAMP.WOLF ? '狼人阵营' : '好人阵营', level: gameInstance.winner === $enums.GAME_CAMP.WOLF ? $enums.TEXT_COLOR.RED : $enums.TEXT_COLOR.GREEN})
+      info.push({text: gameInstance.winnerstring, level: gameInstance.winner === $enums.GAME_CAMP.WOLF ? $enums.TEXT_COLOR.RED : $enums.TEXT_COLOR.GREEN})
       info.push({text: '胜利！', level: $enums.TEXT_COLOR.BLACK})
       return $helper.wrapResult(true, info)
     }
@@ -317,18 +358,11 @@ class gameService extends BaseClass{
 
     if(gameInstance.stage === $enums.GAME_STAGE.EXILE_FINISH_STAGE){
       let stage = $enums.GAME_STAGE.VOTE_STAGE
-      let pkTag = await service.baseService.queryOne(gameTag, {
-        roomId: gameInstance.roomId,
-        gameId: gameInstance._id,
-        day: gameInstance.day,
-        mode: $enums.GAME_TAG_MODE.VOTE_PK,
-        desc: 'pkPlayer'
-      })
-      if(gameInstance.flatTicket === $enums.GAME_TICKET_FLAT.NEED_PK && pkTag){
+      let pkPlayers = await service.tagService.getTodayPkPlayer(gameInstance)
+      if(gameInstance.flatTicket === $enums.GAME_TICKET_FLAT.NEED_PK && pkPlayers && pkPlayers.length > 0){
         // 有pk阶段
         stage = $enums.GAME_STAGE.VOTE_PK_STAGE
       }
-
       let voteDieTag = await service.baseService.queryOne(gameTag,{roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, stage: stage, mode: $enums.GAME_TAG_MODE.DIE})
       if(!voteDieTag){
         let info = []
@@ -377,7 +411,7 @@ class gameService extends BaseClass{
     if(gameInstance.status === $enums.GAME_STATUS.FINISHED){
       let info = []
       info.push({text: '游戏结束！', level: $enums.TEXT_COLOR.BLACK})
-      info.push({text: gameInstance.winner === $enums.GAME_CAMP.WOLF ? '狼人阵营' : '好人阵营', level: gameInstance.winner === $enums.GAME_CAMP.WOLF ? $enums.TEXT_COLOR.RED : $enums.TEXT_COLOR.GREEN})
+      info.push({text: gameInstance.winnerString, level: gameInstance.winner === $enums.GAME_CAMP.WOLF ? $enums.TEXT_COLOR.RED : $enums.TEXT_COLOR.GREEN})
       info.push({text: '胜利！', level: $enums.TEXT_COLOR.BLACK})
       return $helper.wrapResult(true, info)
     }
@@ -402,7 +436,7 @@ class gameService extends BaseClass{
       info.push({text: '今晚查验的玩家为', level: $enums.TEXT_COLOR.BLACK})
       info.push({text: $support.getPlayerFullName(checkPlayer), level: $enums.TEXT_COLOR.RED})
       info.push({text: '他的身份为', level: $enums.TEXT_COLOR.BLACK})
-      info.push({text: checkPlayer.camp === $enums.GAME_CAMP.WOLF ? '狼人阵营' : '好人阵营', level: checkPlayer.camp === $enums.GAME_CAMP.WOLF ? $enums.TEXT_COLOR.RED : $enums.TEXT_COLOR.GREEN})
+      info.push({text: $support.getCampByRole(checkPlayer.role, true), level: checkPlayer.camp === $enums.GAME_CAMP.WOLF ? $enums.TEXT_COLOR.RED : $enums.TEXT_COLOR.GREEN})
       return $helper.wrapResult(true, info)
     } else if (gameInstance.stage === $enums.GAME_STAGE.WOLF_STAGE && currentPlayer.role === 'wolf'){
       let assaultAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId,day: gameInstance.day, stage: $enums.GAME_STAGE.WOLF_STAGE, from: currentPlayer.username, action: $enums.SKILL_ACTION_KEY.ASSAULT})
@@ -584,14 +618,7 @@ class gameService extends BaseClass{
     } else if (gameInstance.stage === $enums.GAME_STAGE.VOTE_PK_STAGE) {
       let useStatus = currentPlayer.status === $enums.PLAYER_STATUS.ALIVE
       let voteAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: $enums.GAME_STAGE.VOTE_PK_STAGE, from: currentPlayer.username, action: $enums.SKILL_ACTION_KEY.VOTE})
-      let pkTag = await service.baseService.queryOne(gameTag, {
-        roomId: gameInstance.roomId,
-        gameId: gameInstance._id,
-        day: gameInstance.day,
-        mode: $enums.GAME_TAG_MODE.VOTE_PK,
-        desc: 'pkPlayer'
-      })
-      let pkPlayer = pkTag && pkTag.value2
+      let pkPlayer = await service.tagService.getTodayPkPlayer(gameInstance)
       if(voteAction){
         // 您已经投过票了
         useStatus = false
@@ -671,14 +698,23 @@ class gameService extends BaseClass{
     const { service, app } = this
     const { $helper, $model, $ws, $enums } = app
     const { game } = $model
+    const {CAMP_MAP} = $constants
+
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)
     }
     if(camp === null || camp === undefined){
       return $helper.wrapResult(false, '游戏赢家为空！', -1)
     }
+
+    let campList = $helper.mapToArray(CAMP_MAP)
+    let targetCamp = campList.find(item=>{return item.value === camp})
+    if(!targetCamp){
+      return $helper.wrapResult(false, '无效的阵营参数！', -1)
+    }
+
     let gameInstance = await service.baseService.queryById(game, id)
-    await service.baseService.updateById(game, gameInstance._id,{status: $enums.GAME_STATUS.FINISHED, winner: camp})
+    await service.baseService.updateById(game, gameInstance._id,{status: $enums.GAME_STATUS.FINISHED, winner: camp, winnerString: targetCamp.name})
     await service.recordService.gameWinRecord(gameInstance, camp)
     $ws.connections.forEach(function (conn) {
       let url = '/lrs/' + gameInstance.roomId

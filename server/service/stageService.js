@@ -30,9 +30,8 @@ class stageService extends BaseClass{
    */
   async wolfStage(id) {
     const { service, app} = this
-    const { $helper, $model, $support, $enums } = app
-
-    const { game, player, action, gameTag } = $model
+    const { $helper, $model, $enums } = app
+    const { game, player, action } = $model
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)
     }
@@ -49,58 +48,25 @@ class stageService extends BaseClass{
       usernameList.push(item.to)
     })
     // 找到他们中被杀次数最多的
-    let target = $helper.findMaxInArray(usernameList)
-    let actionObject = {
-      roomId: gameInstance.roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      from: $enums.GAME_ROLE.WOLF,
-      to: target,
-      action: $enums.SKILL_ACTION_KEY.KILL,
-    }
-    await service.baseService.save(action, actionObject)
-    let diePlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, username: target})
-    await service.recordService.actionRecord(gameInstance, diePlayer,{
-      from: {
-        username: null,
-        name: '狼人',
-        position: null,
-        role: $enums.GAME_ROLE.WOLF,
-        camp: $enums.GAME_CAMP.WOLF,
-      },
-      actionName: '袭击',
-      level: $enums.TEXT_COLOR.RED,
-      text: '狼人今晚袭击了：' + $support.getPlayerFullName(diePlayer),
-      actionKey: $enums.SKILL_ACTION_KEY.KILL,
-    })
+    let targetUsername = $helper.findMaxInArray(usernameList)
+    await service.actionService.saveAction(gameInstance, $enums.SKILL_ACTION_KEY.KILL, $enums.GAME_ROLE.WOLF, targetUsername)
+
+    let diePlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, username: targetUsername})
+    // 狼人团队的最后击杀
+    await service.recordService.wolfTeamAssaultRecord(gameInstance, diePlayer)
 
     // todo: 所有板子的逻辑都揉在一起了，还是板子之间逻辑分开，各自走各自的，便于维护
-    // 结算 有守卫的 清空
+    // 结算有守卫的清空
     if(gameInstance.mode === $enums.GAME_MODE.STANDARD_6){
 
       let defendAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: $enums.GAME_STAGE.GUARD_STAGE, action: $enums.SKILL_ACTION_KEY.DEFEND})
       if(!defendAction || diePlayer.username !== defendAction.to){
-
-        // 给一次死亡
-        let tagObject = {
-          roomId: gameInstance.roomId,
-          gameId: gameInstance._id,
-          day: gameInstance.day,
-          stage: gameInstance.stage,
-          dayStatus: $support.getDayAndNightString(gameInstance.stage),
-          desc: $enums.SKILL_ACTION_KEY.ASSAULT,
-          mode: $enums.GAME_TAG_MODE.DIE,
-          target: diePlayer.username,
-          name: diePlayer.name,
-          position: diePlayer.position
-        }
-        await service.baseService.save(gameTag, tagObject)
-
+        // 如果空守或者守卫和刀死的不是同一个，则不是平安夜
+        await service.tagService.deadTag(gameInstance, diePlayer, $enums.GAME_OUT_REASON.ASSAULT)
         await service.baseService.updateById(player, diePlayer._id,{status: $enums.PLAYER_STATUS.DEAD, outReason: $enums.GAME_OUT_REASON.ASSAULT})
       }
 
-      // 结算所有的死亡玩家
+      // 天亮之前的结算
       await service.stageService.settleStage(gameInstance._id)
     }
     return $helper.wrapResult(true, '')
@@ -113,9 +79,9 @@ class stageService extends BaseClass{
    */
   async witchStage (id) {
     const { service, app} = this
-    const { $helper, $model, $support, $enums } = app
+    const { $helper, $model, $enums } = app
 
-    const { game, player, action, gameTag } = $model
+    const { game, player, action } = $model
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)
     }
@@ -128,39 +94,13 @@ class stageService extends BaseClass{
       let killPlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, username: killTarget})
       if(!saveAction){
         // 女巫没有救人，不管他是没有使用技能，还是没有解药, 注定死亡一个
-        let tagObject = {
-          roomId: gameInstance.roomId,
-          gameId: gameInstance._id,
-          day: gameInstance.day,
-          stage: gameInstance.stage,
-          dayStatus: $support.getDayAndNightString(gameInstance.stage),
-          desc: $enums.SKILL_ACTION_KEY.ASSAULT,
-          mode: $enums.GAME_TAG_MODE.DIE,
-          target: killPlayer.username,
-          name: killPlayer.name,
-          position: killPlayer.position
-        }
-        await service.baseService.save(gameTag, tagObject)
+        await service.tagService.deadTag(gameInstance, killPlayer, $enums.GAME_OUT_REASON.ASSAULT)
+
         // 注册该玩家的死亡
         await service.baseService.updateOne(player,{ roomId: gameInstance.roomId, gameId: gameInstance._id, username: killPlayer.username}, { status: $enums.PLAYER_STATUS.DEAD , outReason: $enums.GAME_OUT_REASON.ASSAULT})
         if(killPlayer.role === $enums.GAME_ROLE.HUNTER){
           // 修改它的技能状态
-          let skills = killPlayer.skill
-          let newSkillStatus = []
-          skills.forEach(item=>{
-            if(item.key === $enums.SKILL_ACTION_KEY.SHOOT){
-              newSkillStatus.push({
-                name: item.name,
-                key: item.key,
-                status: 1
-              })
-            } else {
-              newSkillStatus.push(item)
-            }
-          })
-          await service.baseService.updateById(player, killPlayer._id, {
-            skill: newSkillStatus
-          })
+          await service.playerService.modifyPlayerSkill(killPlayer, $enums.SKILL_ACTION_KEY.SHOOT, $enums.SKILL_MAP.AVAILABLE)
         }
       }
       // 女巫救人，在女巫使用技能时结算。
@@ -173,50 +113,15 @@ class stageService extends BaseClass{
       let poisonPlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, username: poisonAction.to})
       let witchPlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, username: poisonAction.from})
       // 注册玩家死亡
-      await service.baseService.updateById(player, poisonPlayer._id,{status: 0, outReason: $enums.GAME_OUT_REASON.POISON})
-      await service.recordService.actionRecord(gameInstance, poisonPlayer, {
-        from: {
-          username: witchPlayer.username,
-          name: witchPlayer.name,
-          position: witchPlayer.position,
-          role: witchPlayer.role,
-          camp: witchPlayer.camp
-        },
-        actionKey: $enums.SKILL_ACTION_KEY.POISON,
-        level: $enums.TEXT_COLOR.RED
-      })
-
-      let tagObject = {
-        roomId: gameInstance.roomId,
-        gameId: gameInstance._id,
-        day: gameInstance.day,
-        stage: gameInstance.stage,
-        dayStatus: $support.getDayAndNightString(gameInstance.stage),
-        desc: $enums.SKILL_ACTION_KEY.POISON,
-        mode: $enums.GAME_TAG_MODE.DIE,
-        target: poisonPlayer.username,
-        name: poisonPlayer.name,
-        position: poisonPlayer.position
-      }
-      await service.baseService.save(gameTag, tagObject)
+      await service.baseService.updateById(player, poisonPlayer._id,{status: $enums.PLAYER_STATUS.DEAD, outReason: $enums.GAME_OUT_REASON.POISON})
+      await service.recordService.actionRecord(gameInstance, witchPlayer, poisonPlayer, $enums.SKILL_ACTION_KEY.POISON)
+      await service.tagService.deadTag(gameInstance, poisonPlayer, $enums.GAME_OUT_REASON.POISON)
     }
 
     if(!saveAction && !poisonAction){
       // 空过,找女巫
       let witchPlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, role: $enums.GAME_ROLE.WITCH})
-
-      // 查女巫的技能
-      let skill = witchPlayer.skill
-      let has = false
-      skill.forEach(item=>{
-        if(item.status === $enums.SKILL_STATUS.AVAILABLE){
-          has = true
-        }
-      })
-      await service.recordService.emptyActionRecord(gameInstance, witchPlayer, {
-        status: (killAction && killAction.to === witchPlayer.username) ? 1 : witchPlayer.status,
-        actionName: has ? '空过' : '药已用完'
-      })
+      await service.recordService.emptyActionRecord(gameInstance, witchPlayer)
     }
     if(gameInstance.mode === $enums.GAME_MODE.STANDARD_9){
       // 结算所有的死亡玩家
@@ -267,8 +172,8 @@ class stageService extends BaseClass{
    */
   async preSpeakStage (id) {
     const { service, app } = this
-    const { $helper, $model, $support, $enums } = app
-    const { game, player, gameTag } = $model
+    const { $helper, $model, $enums } = app
+    const { game, player } = $model
     if(!id){
       return $helper.wrapResult(false, 'gameId为空！', -1)
     }
@@ -278,20 +183,7 @@ class stageService extends BaseClass{
     let randomPosition = Math.floor(Math.random() * alivePlayer.length )
     let randomOrder = Math.floor(Math.random() * 2 ) + 1 // 随机发言顺序
     let targetPlayer = alivePlayer[randomPosition]
-    let tagObject = {
-      roomId: gameInstance.roomId,
-      gameId: gameInstance._id,
-      day: gameInstance.day,
-      stage: gameInstance.stage,
-      dayStatus: $support.getDayAndNightString(gameInstance.stage),
-      desc: 'speakOrder',
-      mode: $enums.GAME_TAG_MODE.SPEAK_ORDER,
-      value: randomOrder === 1 ? 'asc' : ' desc', // asc 上升（正序） ; desc 下降（逆序）
-      target: targetPlayer.username,
-      name: targetPlayer.name,
-      position: targetPlayer.position
-    }
-    await service.baseService.save(gameTag, tagObject)
+    await service.tagService.speakOrderTag(gameInstance, targetPlayer, randomOrder)
     await service.recordService.speakRecord(gameInstance, targetPlayer, randomOrder)
     return $helper.wrapResult(true, '')
   }
@@ -314,14 +206,7 @@ class stageService extends BaseClass{
     let alivePlayers = await service.baseService.query(player,{gameId: gameInstance._id, roomId: gameInstance.roomId, status: $enums.PLAYER_STATUS.ALIVE},{}, {sort: { position: 1 }})
 
     if(stageNumber === $enums.GAME_STAGE.VOTE_PK_STAGE && gameInstance.flatTicket === $enums.GAME_TICKET_FLAT.NEED_PK){
-      let pkTag = await service.baseService.queryOne(gameTag, {
-        roomId: gameInstance.roomId,
-        gameId: gameInstance._id,
-        day: gameInstance.day,
-        mode: $enums.GAME_TAG_MODE.VOTE_PK,
-        desc: 'pkPlayer'
-      })
-      let pkPlayers = pkTag ? pkTag.value2 : []
+      let pkPlayers = await service.tagService.getTodayPkPlayer(gameInstance)
       let leftPlayers = []
       alivePlayers.forEach(item=>{
         if(!pkPlayers.includes(item.username)){
@@ -380,38 +265,12 @@ class stageService extends BaseClass{
         await service.recordService.exileRecord(gameInstance, votePlayer)
 
         // 注册死亡
-        let tagObject = {
-          roomId: gameInstance.roomId,
-          gameId: gameInstance._id,
-          day: gameInstance.day,
-          stage: gameInstance.stage,
-          dayStatus: $support.getDayAndNightString(gameInstance.stage),
-          desc: $enums.SKILL_ACTION_KEY.VOTE,
-          mode: $enums.GAME_TAG_MODE.DIE,
-          target: votePlayer.username,
-          name: votePlayer.name,
-          position: votePlayer.position
-        }
-        await service.baseService.save(gameTag, tagObject)
+        await service.tagService.deadTag(gameInstance, votePlayer, $enums.GAME_OUT_REASON.EXILE)
+
         await service.baseService.updateById(player, votePlayer._id,{status: 0, outReason: $enums.GAME_OUT_REASON.VOTE})
         if(votePlayer.role === $enums.GAME_ROLE.HUNTER){
           // 修改猎人的技能状态
-          let skills = votePlayer.skill
-          let newSkillStatus = []
-          skills.forEach(item=>{
-            if(item.key === $enums.SKILL_ACTION_KEY.SHOOT){
-              newSkillStatus.push({
-                name: item.name,
-                key: item.key,
-                status: 1
-              })
-            } else {
-              newSkillStatus.push(item)
-            }
-          })
-          await service.baseService.updateById(player, votePlayer._id, {
-            skill: newSkillStatus
-          })
+          await service.playerService.modifyPlayerSkill(votePlayer, $enums.SKILL_ACTION_KEY.SHOOT, $enums.SKILL_STATUS.AVAILABLE)
         }
       } else {
 
@@ -423,35 +282,9 @@ class stageService extends BaseClass{
           let num = Math.floor(Math.random() * maxCount.length)
           let randomOrder = Math.floor(Math.random() * 2 ) + 1 // 1到2的随机数
           let targetPlayer = await service.baseService.queryOne(player, {roomId: gameInstance.roomId, gameId: gameInstance._id, username: maxCount[num]})
-          let tagObject = {
-            roomId: gameInstance.roomId,
-            gameId: gameInstance._id,
-            day: gameInstance.day,
-            stage: gameInstance.stage,
-            dayStatus: $support.getDayAndNightString(gameInstance.stage),
-            desc: 'speakOrder',
-            mode: $enums.GAME_TAG_MODE.SPEAK_ORDER,
-            value: randomOrder === 1 ? 'asc' : ' desc', // asc 上升（正序） ; desc 下降（逆序）
-            target: targetPlayer.username,
-            name: targetPlayer.name,
-            position: targetPlayer.position
-          }
-          await service.baseService.save(gameTag, tagObject)
-
+          await service.tagService.speakOrderTag(gameInstance, targetPlayer, randomOrder)
           await service.recordService.votePkRecord(gameInstance, targetPlayer, maxCount, randomOrder)
-
-          let pkTagObject = {
-            roomId: gameInstance.roomId,
-            gameId: gameInstance._id,
-            day: gameInstance.day,
-            stage: gameInstance.stage,
-            dayStatus: $support.getDayAndNightString(gameInstance.stage),
-            desc: 'pkPlayer',
-            mode: $enums.GAME_TAG_MODE.VOTE_PK,
-            value2: maxCount,
-            target: 'pkPlayer',
-          }
-          await service.baseService.save(gameTag, pkTagObject)
+          await service.tagService.votePkTag(gameInstance, maxCount)
           // 进入到6.5阶段（pk阶段）
           needPk = 'Y'
           let gameStack = $support.getStageStack(gameInstance)
