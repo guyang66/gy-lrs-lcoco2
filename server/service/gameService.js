@@ -183,7 +183,7 @@ class gameService extends BaseClass{
         // 经过了晚上的洗礼，如果死亡
         return currentPlayer.outReason !== $enums.GAME_OUT_REASON.POISON
       }
-      return stage === $enums.PLAYER_STATUS.EXILE_FINISH_STAGE && currentPlayer.status === $enums.PLAYER_STATUS.ALIVE;
+      return stage !== $enums.GAME_STAGE.EXILE_FINISH_STAGE;
     }
 
     let tmp = []
@@ -226,7 +226,7 @@ class gameService extends BaseClass{
           break;
         case $enums.SKILL_ACTION_KEY.SHOOT:
           skillMap.canUse = computeHunterSkill(skill, gameInstance.stage)
-          skillMap.show = (gameInstance.stage === $enums.GAME_STAGE.AFTER_NIGHT || gameInstance.stage === $enums.PLAYER_STATUS.EXILE_FINISH_STAGE) && isSkillAvailable
+          skillMap.show = (gameInstance.stage === $enums.GAME_STAGE.AFTER_NIGHT || gameInstance.stage === $enums.GAME_STAGE.EXILE_FINISH_STAGE) && isSkillAvailable
           tmp.push(skillMap)
           break;
         default:
@@ -290,7 +290,6 @@ class gameService extends BaseClass{
         roomId: gameInstance.roomId,
         gameId: gameInstance._id,
         day: gameInstance.day,
-        // stage: { $in: [$enums.GAME_STAGE.WITCH_STAGE, $enums.GAME_STAGE.AFTER_NIGHT]}, // 阶段
         mode: $enums.GAME_TAG_MODE.DIE
       }, {}, { sort: { position: 1}})
 
@@ -536,19 +535,14 @@ class gameService extends BaseClass{
         skills.forEach(item=>{
           if(item.key === $enums.SKILL_ACTION_KEY.SHOOT){
             skill = item
-            return
           }
         })
-        if(skill && skill.status === $enums.SKILL_STATUS.UNAVAILABLE){
-          // 使用过技能了
-          return $helper.wrapResult(true, info)
-        }
         if(currentPlayer.outReason !== $enums.GAME_OUT_REASON.POISON){
           info.push({text: '，你现在可以发动', level: $enums.TEXT_COLOR.BLACK})
           info.push({text: '技能', level: $enums.TEXT_COLOR.GREEN})
         } else {
           info.push({text: '，你被', level: $enums.TEXT_COLOR.BLACK})
-          info.push({text: '，毒药毒死，', level: $enums.TEXT_COLOR.RED})
+          info.push({text: '毒药毒死', level: $enums.TEXT_COLOR.RED})
           info.push({text: '无法发动技能', level: $enums.TEXT_COLOR.BLACK})
         }
         return $helper.wrapResult(true, info)
@@ -696,7 +690,7 @@ class gameService extends BaseClass{
    */
   async setGameWin (id, camp) {
     const { service, app } = this
-    const { $helper, $model, $ws, $enums } = app
+    const { $helper, $model, $ws, $enums, $constants } = app
     const { game } = $model
     const {CAMP_MAP} = $constants
 

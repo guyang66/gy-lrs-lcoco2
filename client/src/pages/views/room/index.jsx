@@ -550,6 +550,14 @@ const Index = (props) => {
                         </div>
                       ) : null
                     }
+                    {
+                      item.status === 0 ? (
+                        <div className="dead-view">
+                          <div className="dead-mask"></div>
+                          <div className="dead-text">出局</div>
+                        </div>
+                      ) : null
+                    }
                   </div>
                 )
               })

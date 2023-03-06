@@ -110,6 +110,7 @@ class recordService extends BaseClass{
 
     let targetText = ''
     let textLevel = $enums.TEXT_COLOR.BLACK
+    let isCommon = 0
     switch (actionKey) {
       case $enums.SKILL_ACTION_KEY.CHECK:
         targetText = $support.getPlayerFullName(fromPlayer) + fromPlayer.roleName + '查验了' + $support.getPlayerFullName(toPlayer) + '的身份为' + toPlayer.campName
@@ -130,6 +131,8 @@ class recordService extends BaseClass{
       case $enums.SKILL_ACTION_KEY.SHOOT:
         targetText = $support.getPlayerFullName(fromPlayer) + fromPlayer.roleName + '发动开枪带走了' + $support.getPlayerFullName(toPlayer)
         textLevel = $enums.TEXT_COLOR.ORANGE
+        // 猎人开枪使用技能可公开
+        isCommon = 1
         break;
       default:
     }
@@ -140,7 +143,7 @@ class recordService extends BaseClass{
       day: gameInstance.day,
       stage: gameInstance.stage,
       view: [],
-      isCommon: 0,
+      isCommon: isCommon,
       isTitle: 0,
       content: {
         type: 'action',
@@ -301,7 +304,7 @@ class recordService extends BaseClass{
 
     // 对女巫特殊处理
     if(fromPlayer.role === $enums.GAME_ROLE.WITCH){
-      let skill = witchPlayer.skill
+      let skill = fromPlayer.skill
       let has = false
       // 查女巫的技能是否已经用完
       skill.forEach(item=>{

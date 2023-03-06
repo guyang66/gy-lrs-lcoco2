@@ -210,6 +210,20 @@ class gameController extends BaseClass {
       return
     }
     let gameInstance = await service.baseService.queryById(game, gameId)
+
+    if(!gameInstance){
+      ctx.body = $helper.Result.fail(-1,'游戏不存在！')
+      return
+    }
+    if(gameInstance.status === $enums.GAME_STATUS.FINISHED){
+      ctx.body = $helper.Result.fail(-1,'游戏已经结束！' + $support.getGameWinner(gameInstance))
+      return
+    }
+    if(gameInstance.status === $enums.GAME_STATUS.EXCEPTION){
+      ctx.body = $helper.Result.fail(-1,'该局游戏已流局，请尝试重开游戏！')
+      return
+    }
+
     let currentUser = await service.baseService.userInfo()
     let roomInstance = await service.baseService.queryById(room, gameInstance.roomId)
     let isOb = $support.isOb(roomInstance, currentUser.username)
@@ -253,18 +267,6 @@ class gameController extends BaseClass {
         ctx.body = $helper.Result.fail(-1,'您不是房主，无权进行此操作！')
         return
       }
-    }
-    if(!gameInstance){
-      ctx.body = $helper.Result.fail(-1,'游戏不存在！')
-      return
-    }
-    if(gameInstance.status === $enums.GAME_STATUS.FINISHED){
-      ctx.body = $helper.Result.fail(-1,'游戏已经结束！' + $support.getGameWinner(gameInstance))
-      return
-    }
-    if(gameInstance.status === $enums.GAME_STATUS.EXCEPTION){
-      ctx.body = $helper.Result.fail(-1,'该局游戏已流局，请尝试重开游戏！')
-      return
     }
 
     // 如果手动进入下一回合，需要清掉定时器
@@ -326,11 +328,13 @@ class gameController extends BaseClass {
         if(isOb){
           return false
         }
-        if(action) {
-          return gameInstance.status === $enums.GAME_STATUS.GOING && target.role !== 'out' && target.role !== 'exile' && action !== $enums.SKILL_ACTION_KEY.SHOOT
-        } else {
-          return gameInstance.status === $enums.GAME_STATUS.GOING && target.role !== 'out' && target.role !== 'exile'
+        if(target.role === 'out' || target.role === 'exile' || target.role === 'boom'){
+          return false
         }
+        if(action === $enums.SKILL_ACTION_KEY.SHOOT){
+          return false
+        }
+        return gameInstance.status === $enums.GAME_STATUS.GOING
       }
 
       if(record.content.type === 'action'){

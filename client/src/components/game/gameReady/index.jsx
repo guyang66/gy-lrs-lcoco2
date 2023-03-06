@@ -136,6 +136,9 @@ const Ready = (props) => {
 
   const renderRadioView = (item) => {
     const opt = gameConfigOptions? gameConfigOptions[item.key] : []
+    opt.forEach(item=>{
+      item.label = item.name
+    })
     return (
       <div className="setting-cell FBH FBAC mar-b10" key={item.key}>
         <div className="item-title">{item.title}</div>

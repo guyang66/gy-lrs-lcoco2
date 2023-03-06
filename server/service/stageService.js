@@ -100,7 +100,7 @@ class stageService extends BaseClass{
         await service.baseService.updateOne(player,{ roomId: gameInstance.roomId, gameId: gameInstance._id, username: killPlayer.username}, { status: $enums.PLAYER_STATUS.DEAD , outReason: $enums.GAME_OUT_REASON.ASSAULT})
         if(killPlayer.role === $enums.GAME_ROLE.HUNTER){
           // 修改它的技能状态
-          await service.playerService.modifyPlayerSkill(killPlayer, $enums.SKILL_ACTION_KEY.SHOOT, $enums.SKILL_MAP.AVAILABLE)
+          await service.playerService.modifyPlayerSkill(killPlayer, $enums.SKILL_ACTION_KEY.SHOOT, $enums.SKILL_STATUS.AVAILABLE)
         }
       }
       // 女巫救人，在女巫使用技能时结算。
@@ -267,7 +267,8 @@ class stageService extends BaseClass{
         // 注册死亡
         await service.tagService.deadTag(gameInstance, votePlayer, $enums.GAME_OUT_REASON.EXILE)
 
-        await service.baseService.updateById(player, votePlayer._id,{status: 0, outReason: $enums.GAME_OUT_REASON.VOTE})
+        await service.baseService.updateById(player, votePlayer._id,{status: $enums.PLAYER_STATUS.DEAD, outReason: $enums.GAME_OUT_REASON.VOTE})
+
         if(votePlayer.role === $enums.GAME_ROLE.HUNTER){
           // 修改猎人的技能状态
           await service.playerService.modifyPlayerSkill(votePlayer, $enums.SKILL_ACTION_KEY.SHOOT, $enums.SKILL_STATUS.AVAILABLE)
