@@ -727,7 +727,7 @@ class gameService extends BaseClass{
   /**
    * 进入下一个阶段
    * @param gameId
-   * @returns {Promise<{result}>}
+   * @returns {Promise<void>}
    */
   async moveToNextStage (gameId) {
     const { service, app } = this
@@ -823,6 +823,7 @@ class gameService extends BaseClass{
           conn.sendText(JSON.stringify(data))
         }
       })
+      return
     }
 
     $nodeCache.set('game-time-' + gameInstance._id, t)

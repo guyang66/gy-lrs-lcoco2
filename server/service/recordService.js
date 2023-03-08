@@ -517,7 +517,7 @@ class recordService extends BaseClass{
   async voteRecord (gameInstance, map, key) {
     const { service, app } = this
     const { $model, $enums } = app
-    const { player } = $model
+    const { player, record } = $model
     if(!gameInstance || gameInstance === ''){
       throw new Error('gameInstance为空！')
     }
