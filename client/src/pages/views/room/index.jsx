@@ -39,7 +39,7 @@ const Index = (props) => {
   const [skillInfo, setSkillInfo] = useState([])
   const [actionInfo, setActionInfo] = useState([])
 
-  const [errorPage, setErrorPage] = useState(false)
+  const [errorPage, setErrorPage] = useState(null)
 
   const [recordModal, setRecordModal] = useState(false)
   const [gameRecord, setGameRecord] = useState([])
@@ -55,6 +55,17 @@ const Index = (props) => {
 
   const [timerTime, setTimerTime] = useState(null)
 
+  const fetchMap = {
+    'check': { api: apiGame.checkPlayer, role: 'predictor' },
+    'assault': { api: apiGame.assaultPlayer, role: 'wolf' },
+    'poison': { api: apiGame.poisonPlayer, role: 'witch' },
+    'vote': { api: apiGame.votePlayer, role: null },
+    'shoot': { api: apiGame.shootPlayer, role: 'hunter' },
+    'boom': { api:  apiGame.boomPlayer, role: 'wolf' },
+    'antidote': {api: apiGame.antidotePlayer, role: 'witch' },
+    'defend': {api: apiGame.defendPlayer, role: 'guard' }
+  }
+
   useEffect(()=>{
     getRoomDetail()
   },[])
@@ -69,7 +80,7 @@ const Index = (props) => {
       }
     }).catch(error=>{
       console.log('获取房间信息失败！',error)
-      setErrorPage(true)
+      setErrorPage(error.errorMessage)
     })
   }
 
@@ -90,14 +101,14 @@ const Index = (props) => {
       }
     }).catch(error=>{
       console.log('发生了错误！',error)
-      setErrorPage(true)
+      setErrorPage(error.errorMessage)
     })
   }
 
   const initSeat = (detail) => {
     if(!detail.seat){
       let p = []
-      for(let i =0; i< 9; i++){
+      for(let i = 0; i < roomDetail.playerCount || 9; i++){
         p.push({
           index: i,
           key: i + 1,
@@ -199,51 +210,14 @@ const Index = (props) => {
       setActionModal(true)
       return;
     }
-
     message.error('未识别的动作！')
   }
 
   const playerAction = (player, action, needConfirm) => {
-    const fetchMap = {
-      'check': {
-        api: apiGame.checkPlayer,
-        role: 'predictor'
-      },
-      'assault': {
-        api: apiGame.assaultPlayer,
-        role: 'wolf',
-      },
-      'poison': {
-        api: apiGame.poisonPlayer,
-        role: 'witch'
-      },
-      'vote': {
-        api: apiGame.votePlayer,
-        role: null
-      },
-      'shoot': {
-        api: apiGame.shootPlayer,
-        role: 'hunter'
-      },
-      'boom': {
-        api:  apiGame.boomPlayer,
-        role: 'wolf',
-      },
-      'antidote': {
-        api: apiGame.antidotePlayer,
-        role: 'witch'
-      },
-      'defend': {
-        api: apiGame.defendPlayer,
-        role: 'guard'
-      }
-    }
-
     let params = {roomId: gameDetail.roomId, gameId: gameDetail._id}
     if(player){
       params.username = player.username
     }
-
     if(needConfirm){
       confirm(
         {
@@ -316,6 +290,48 @@ const Index = (props) => {
     setGameDetail({})
   }
 
+  const resetRoomDetail = () => {
+    if(socketOn){
+      getRoomDetail()
+    }
+  }
+
+  const showGameWinner = () => {
+    apiGame.gameResult({id: gameDetail._id}).then(data=>{
+      // 关闭所有的弹窗
+      closeAllModel()
+      showWinner(data)
+    })
+  }
+
+  const stageChange = () => {
+    setActionPlayer([])
+    setCurrentAction('')
+    setActionResult(null)
+    closeAllModel()
+    initGame(gameDetail._id, roomDetail._id)
+  }
+
+  const restartGame = () => {
+    closeAllModel()
+    setActionPlayer([])
+    setCurrentAction('')
+    setActionResult(null)
+    setPlayerInfo([])
+    setCurrentRole({})
+    resetRoomDetail()
+  }
+
+  const handleTimerMsg = (msg) => {
+    if(msg === null || msg === undefined || msg === ''){
+      return
+    }
+    let msgData = JSON.parse(msg)
+    if(msgData.time !== null ){
+      setTimerTime(msgData.time)
+    }
+  }
+
   const showWinner = (data) => {
     const config = {
       okText: '确定',
@@ -353,42 +369,28 @@ const Index = (props) => {
   }
 
   const wsMessage = (msg) => {
-    if(msg === 'refreshRoom'){
-      if(socketOn){
-        getRoomDetail()
-      }
-    } else if (msg === 'refreshGame') {
-      initGame(gameDetail._id, roomDetail._id)
-    } else if (msg === 'stageChange') {
-      setActionPlayer([])
-      setCurrentAction('')
-      setActionResult(null)
-      closeAllModel()
-      initGame(gameDetail._id, roomDetail._id)
-    } else if (msg === 'gameStart'){
-      getRoomDetail(true)
-    } else if (msg === 'gameOver') {
-      apiGame.gameResult({id: gameDetail._id}).then(data=>{
-        // 关闭所有的弹窗
-        closeAllModel()
-        showWinner(data)
-      })
-    } else if (msg === 'reStart'){
-      closeAllModel()
-      setActionPlayer([])
-      setCurrentAction('')
-      setActionResult(null)
-      setPlayerInfo([])
-      setCurrentRole({})
-      if(socketOn){
-        getRoomDetail()
-      }
-    } else {
-      // 处理定时器
-      let msgData = JSON.parse(msg)
-      if(msgData.time !== null ){
-        setTimerTime(msgData.time)
-      }
+    switch (msg) {
+      case 'refreshRoom':
+        resetRoomDetail()
+        break
+      case 'refreshGame':
+        initGame(gameDetail._id, roomDetail._id)
+        break
+      case 'gameStart':
+        getRoomDetail(true)
+        break
+      case 'stageChange':
+        stageChange()
+        break
+      case 'gameOver':
+        showGameWinner()
+        break
+      case 'reStart':
+        restartGame()
+        break
+      default:
+        // 默认都是更新定时器计数
+        handleTimerMsg(msg)
     }
   }
 
@@ -406,7 +408,7 @@ const Index = (props) => {
   if(errorPage){
     return (
       <div className="error-view FBV FBAC">
-        <div className="desc mar-b20 mar-t40">您被房主踢了！</div>
+        <div className="desc mar-b20 mar-t40">游戏已发生变化，请退出房间重新进入（{errorPage}）</div>
         <Button className="btn-primary" onClick={quitRoom}>
           返回首页
         </Button>
