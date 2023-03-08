@@ -9,10 +9,10 @@ class recordService extends BaseClass{
    */
   async gameStartRecord(gameInstance){
     const { service, app } = this
-    const { $helper, $model, $enums } = app
+    const { $model, $enums } = app
     const { record } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空！')
     }
     let saveRecord = {
       roomId: gameInstance.roomId,
@@ -26,7 +26,6 @@ class recordService extends BaseClass{
       isTitle: 0
     }
     await service.baseService.save(record, saveRecord)
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
@@ -36,10 +35,10 @@ class recordService extends BaseClass{
    */
   async gameOverRecord (gameInstance) {
     const { service, app } = this
-    const { $helper, $model } = app
+    const { $model } = app
     const { record } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空！')
     }
     let saveRecord = {
       roomId: gameInstance.roomId,
@@ -49,7 +48,6 @@ class recordService extends BaseClass{
       isTitle: 0
     }
     await service.baseService.save(record, saveRecord)
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
@@ -61,10 +59,10 @@ class recordService extends BaseClass{
    */
   async nightBeginRecord(gameInstance, day, stage){
     const { service, app } = this
-    const { $helper, $model, $enums } = app
+    const { $model, $enums } = app
     const { record } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空！')
     }
     let saveRecord = {
       roomId: gameInstance.roomId,
@@ -83,7 +81,6 @@ class recordService extends BaseClass{
       saveRecord.stage = stage
     }
     await service.baseService.save(record, saveRecord)
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
@@ -92,14 +89,14 @@ class recordService extends BaseClass{
    */
   async actionRecord (gameInstance, fromPlayer, toPlayer, actionKey) {
     const { service, app } = this
-    const { $helper, $model, $enums, $constants, $support } = app
+    const { $model, $enums, $constants, $support } = app
     const { record } = $model
     const { SKILL_MAP } = $constants
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空！')
     }
     if(!actionKey || actionKey === ''){
-      return $helper.wrapResult(false, 'actionKey为空！', -1)
+      throw new Error('actionKey！')
     }
 
     let action = SKILL_MAP[fromPlayer.role].find(item=>{
@@ -167,9 +164,7 @@ class recordService extends BaseClass{
         }
       }
     }
-
     await service.baseService.save(record, saverRecord)
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
@@ -180,10 +175,10 @@ class recordService extends BaseClass{
    */
   async deadRecord (gameInstance, targetPlayer) {
     const { service, app } = this
-    const { $helper, $model, $enums } = app
+    const { $model, $enums } = app
     const { record, player } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空！')
     }
     let currentUser = await service.baseService.userInfo()
     let currentPlayer = await service.baseService.queryOne(player, {roomId: gameInstance.roomId, gameId: gameInstance._id, username: currentUser.username})
@@ -214,7 +209,6 @@ class recordService extends BaseClass{
       }
     }
     await service.baseService.save(record, saveRecord)
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
@@ -223,11 +217,11 @@ class recordService extends BaseClass{
    */
   async gameWinRecord (gameInstance, camp) {
     const { service, app } = this
-    const { $helper, $model, $enums, $constants } = app
+    const { $model, $enums, $constants } = app
     const { record } = $model
     const {CAMP_MAP} = $constants
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空！')
     }
 
     let campList = $helper.mapToArray(CAMP_MAP)
@@ -278,7 +272,6 @@ class recordService extends BaseClass{
       }
     }
     await service.baseService.save(record, saveRecord)
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
@@ -293,10 +286,10 @@ class recordService extends BaseClass{
     const { record } = $model
     const {JUMP_MAP} = $constants
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空！')
     }
     if(!fromPlayer){
-      return $helper.wrapResult(false, 'targetPlayer为空！', -1)
+      throw new Error('targetPlayer为空！')
     }
 
     let roleName = $support.getRoleName(fromPlayer.role)
@@ -346,7 +339,6 @@ class recordService extends BaseClass{
       }
     }
     await service.baseService.save(record, saveRecord)
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
@@ -358,10 +350,10 @@ class recordService extends BaseClass{
    */
   async speakRecord (gameInstance, targetPlayer, randomOrder) {
     const { service, app } = this
-    const { $helper, $model, $enums, $support } = app
+    const { $model, $enums, $support } = app
     const { record } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空！')
     }
     let saveRecord = {
       roomId: gameInstance.roomId,
@@ -394,7 +386,6 @@ class recordService extends BaseClass{
       }
     }
     await service.baseService.save(record, saveRecord)
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
@@ -404,10 +395,10 @@ class recordService extends BaseClass{
    */
   async dayBeginRecord (gameInstance) {
     const { service, app } = this
-    const { $helper, $model, $enums } = app
+    const { $model, $enums } = app
     const { record } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空！')
     }
     let saveRecord = {
       roomId: gameInstance.roomId,
@@ -423,7 +414,6 @@ class recordService extends BaseClass{
       isTitle: 0
     }
     await service.baseService.save(record, saveRecord)
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
@@ -433,10 +423,10 @@ class recordService extends BaseClass{
    */
   async peaceRecord (gameInstance) {
     const { service, app } = this
-    const { $helper, $model, $enums } = app
+    const { $model, $enums } = app
     const { record } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空！')
     }
     let saveRecord = {
       roomId: gameInstance.roomId,
@@ -453,21 +443,20 @@ class recordService extends BaseClass{
       }
     }
     await service.baseService.save(record, saveRecord)
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
    * 弃票事件
    * @param gameInstance
    * @param abstainedPlayer
-   * @returns {Promise<{result}>}
+   * @returns {Promise<void>}
    */
   async abstainedRecord (gameInstance, abstainedPlayer = null) {
     const { service, app } = this
-    const { $helper, $model, $enums } = app
+    const { $model, $enums } = app
     const { record } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空！')
     }
     if(!abstainedPlayer){
       let recordObject = {
@@ -485,7 +474,7 @@ class recordService extends BaseClass{
         }
       }
       await service.baseService.save(record, recordObject)
-      return $helper.wrapResult(true, 'ok')
+      return
     }
     let abstainedString = ''
     for(let i =0; i < abstainedPlayer.length; i++){
@@ -516,7 +505,6 @@ class recordService extends BaseClass{
       }
     }
     await service.baseService.save(record, saveRecord)
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
@@ -528,10 +516,10 @@ class recordService extends BaseClass{
    */
   async voteRecord (gameInstance, map, key) {
     const { service, app } = this
-    const { $helper, $model, $enums } = app
-    const { record, player } = $model
+    const { $model, $enums } = app
+    const { player } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空！')
     }
     // 排序
     let content = map[key]
@@ -578,9 +566,7 @@ class recordService extends BaseClass{
         }
       }
     }
-
     await service.baseService.save(record, saveRecord)
-    return $helper.wrapResult(true, 'ok')
   }
   /**
    * 放逐事件
@@ -590,10 +576,10 @@ class recordService extends BaseClass{
    */
   async exileRecord (gameInstance, targetPlayer) {
     const { service, app } = this
-    const { $helper, $model, $enums, $support } = app
+    const { $model, $enums, $support } = app
     const { record } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空！')
     }
     let saveRecord = {
       roomId: gameInstance.roomId,
@@ -623,7 +609,6 @@ class recordService extends BaseClass{
       }
     }
     await service.baseService.save(record, saveRecord)
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
@@ -633,10 +618,10 @@ class recordService extends BaseClass{
    */
   async flatTicketRecord (gameInstance) {
     const { service, app } = this
-    const { $helper, $model, $enums } = app
+    const { $model, $enums } = app
     const { record } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空！')
     }
     let saveRecord = {
       roomId: gameInstance.roomId,
@@ -661,7 +646,6 @@ class recordService extends BaseClass{
       }
     }
     await service.baseService.save(record, saveRecord)
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
@@ -674,10 +658,10 @@ class recordService extends BaseClass{
    */
   async votePkRecord (gameInstance, targetPlayer, maxCount, randomOrder) {
     const { service, app } = this
-    const { $helper, $model, $enums, $support } = app
+    const { $model, $enums, $support } = app
     const { record, player } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空！')
     }
 
     let pkPlayerString = ''
@@ -739,7 +723,6 @@ class recordService extends BaseClass{
       }
     }
     await service.baseService.save(record, saveRecord)
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
@@ -750,10 +733,10 @@ class recordService extends BaseClass{
    */
   async wolfTeamAssaultRecord (gameInstance, toPlayer) {
     const { service, app } = this
-    const { $helper, $model, $enums, $support } = app
+    const { $model, $enums, $support } = app
     const { record } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空！')
     }
     let saveRecord = {
       roomId: gameInstance.roomId,
@@ -786,7 +769,6 @@ class recordService extends BaseClass{
       }
     }
     await service.baseService.save(record, saveRecord)
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
@@ -797,10 +779,10 @@ class recordService extends BaseClass{
    */
   async boomRecord (gameInstance, fromPlayer) {
     const { service, app } = this
-    const { $helper, $model, $enums, $support } = app
+    const { $model, $enums, $support } = app
     const { record } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空！')
     }
     let saveRecord = {
       roomId: gameInstance.roomId,
@@ -830,7 +812,6 @@ class recordService extends BaseClass{
       }
     }
     await service.baseService.save(record, saveRecord)
-    return $helper.wrapResult(true, 'ok')
   }
 
 }

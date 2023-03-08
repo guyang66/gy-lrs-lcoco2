@@ -2,17 +2,17 @@ const BaseClass = require('../base/BaseClass')
 class stageService extends BaseClass{
   /**
    * 预言家阶段结算
-   * @param id
+   * @param gameId
    * @returns {Promise<{result}>}
    */
-  async predictorStage(id) {
+  async predictorStage(gameId) {
     const { service, app } = this
-    const { $helper, $model, $enums } = app
+    const { $model, $enums } = app
     const { game, player, action } = $model
-    if(!id){
-      return $helper.wrapResult(false, 'gameId为空！', -1)
+    if(!gameId){
+      throw new Error('gameId为空！')
     }
-    let gameInstance = await service.baseService.queryById(game, id)
+    let gameInstance = await service.baseService.queryById(game, gameId)
     // 查找当天晚上的查验action
     let checkAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: $enums.GAME_STAGE.PREDICTOR_STAGE, action: $enums.SKILL_ACTION_KEY.CHECK})
     if(!checkAction) {
@@ -20,26 +20,25 @@ class stageService extends BaseClass{
       let predictorPlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, role: $enums.GAME_ROLE.PREDICTOR})
       await service.recordService.emptyActionRecord(gameInstance, predictorPlayer)
     }
-    return $helper.wrapResult(true, '')
   }
 
   /**
    * 狼人行动结束后的结算 —— 计算被刀次数最多的玩家作为狼人夜晚击杀的目标（如果平票则随机抽取一位玩家死亡）
-   * @param id
-   * @returns {Promise<{result}>}
+   * @param gameId
+   * @returns {Promise<void>}
    */
-  async wolfStage(id) {
+  async wolfStage(gameId) {
     const { service, app} = this
     const { $helper, $model, $enums } = app
     const { game, player, action } = $model
-    if(!id){
-      return $helper.wrapResult(false, 'gameId为空！', -1)
+    if(!gameId){
+      throw new Error('gameId为空！')
     }
-    let gameInstance = await service.baseService.queryById(game, id)
+    let gameInstance = await service.baseService.queryById(game, gameId)
     let assaultActionList = await service.baseService.query(action, {roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, stage: $enums.GAME_STAGE.WOLF_STAGE, action: $enums.SKILL_ACTION_KEY.ASSAULT})
     if(!assaultActionList || assaultActionList.length < 1){
       await service.recordService.emptyActionRecord(gameInstance,{username: null, name: '狼人', position: null, role: 'wolf', camp: 0 })
-      return $helper.wrapResult(true, '')
+      return
     }
 
     // 计算袭击真正需要死亡的玩家，票数多的玩家死亡，平票则随机抽选一个死亡
@@ -55,7 +54,6 @@ class stageService extends BaseClass{
     // 狼人团队的最后击杀
     await service.recordService.wolfTeamAssaultRecord(gameInstance, diePlayer)
 
-    // todo: 所有板子的逻辑都揉在一起了，还是板子之间逻辑分开，各自走各自的，便于维护
     // 结算有守卫的清空
     if(gameInstance.mode === $enums.GAME_MODE.STANDARD_6){
 
@@ -65,27 +63,25 @@ class stageService extends BaseClass{
         await service.tagService.deadTag(gameInstance, diePlayer, $enums.GAME_OUT_REASON.ASSAULT)
         await service.baseService.updateById(player, diePlayer._id,{status: $enums.PLAYER_STATUS.DEAD, outReason: $enums.GAME_OUT_REASON.ASSAULT})
       }
-
       // 天亮之前的结算
       await service.stageService.settleStage(gameInstance._id)
     }
-    return $helper.wrapResult(true, '')
   }
 
   /**
    * 女巫行动后的结算 - 结算狼人击杀、解药、毒药三者综合后的结果
-   * @param id
+   * @param gameId
    * @returns {Promise<{result}>}
    */
-  async witchStage (id) {
+  async witchStage (gameId) {
     const { service, app} = this
-    const { $helper, $model, $enums } = app
+    const { $model, $enums } = app
 
     const { game, player, action } = $model
-    if(!id){
-      return $helper.wrapResult(false, 'gameId为空！', -1)
+    if(!gameId){
+      throw new Error('gameId为空！')
     }
-    let gameInstance = await service.baseService.queryById(game, id)
+    let gameInstance = await service.baseService.queryById(game, gameId)
     // 女巫回合 => 天亮了, 需要结算死亡玩家和游戏是否结束
     let killAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: $enums.GAME_STAGE.WOLF_STAGE, action: $enums.SKILL_ACTION_KEY.KILL})
     let saveAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: $enums.GAME_STAGE.WITCH_STAGE, action: $enums.SKILL_ACTION_KEY.ANTIDOTE})
@@ -127,22 +123,21 @@ class stageService extends BaseClass{
       // 结算所有的死亡玩家
       await service.stageService.settleStage(gameInstance._id)
     }
-    return $helper.wrapResult(true, '')
   }
 
   /**
    * 结算阶段
    * @returns {Promise<void>}
    */
-  async settleStage (id) {
+  async settleStage (gameId) {
     const { service, app} = this
-    const { $helper, $model, $enums } = app
+    const { $model, $enums } = app
 
     const { game, player, gameTag } = $model
-    if(!id){
-      return $helper.wrapResult(false, 'gameId为空！', -1)
+    if(!gameId){
+      throw new Error('gameId为空！')
     }
-    let gameInstance = await service.baseService.queryById(game, id)
+    let gameInstance = await service.baseService.queryById(game, gameId)
 
     await service.recordService.dayBeginRecord(gameInstance)
 
@@ -162,22 +157,21 @@ class stageService extends BaseClass{
         dieMap[diePlayerList[i].target] = diePlayer
       }
     }
-    return $helper.wrapResult(true, '')
   }
 
   /**
    * 进入发言环节
-   * @param id
+   * @param gameId
    * @returns {Promise<{result}>}
    */
-  async preSpeakStage (id) {
+  async preSpeakStage (gameId) {
     const { service, app } = this
-    const { $helper, $model, $enums } = app
+    const { $model, $enums } = app
     const { game, player } = $model
-    if(!id){
-      return $helper.wrapResult(false, 'gameId为空！', -1)
+    if(!gameId){
+      throw new Error('gameId为空！')
     }
-    let gameInstance = await service.baseService.queryById(game, id)
+    let gameInstance = await service.baseService.queryById(game, gameId)
     // 从存活的玩家中随机抽取一位玩家座位第一位发言
     let alivePlayer = await service.baseService.query(player, {gameId: gameInstance._id, roomId: gameInstance.roomId, status: $enums.PLAYER_STATUS.ALIVE})
     let randomPosition = Math.floor(Math.random() * alivePlayer.length )
@@ -185,27 +179,25 @@ class stageService extends BaseClass{
     let targetPlayer = alivePlayer[randomPosition]
     await service.tagService.speakOrderTag(gameInstance, targetPlayer, randomOrder)
     await service.recordService.speakRecord(gameInstance, targetPlayer, randomOrder)
-    return $helper.wrapResult(true, '')
   }
 
   /**
    * 投票阶段
    * @returns {Promise<void>}
    */
-  async voteStage (id, stageNumber = 6) {
+  async voteStage (gameId, currentStage) {
     const { service, app} = this
     const { $helper, $model, $support, $enums } = app
-    const { game, player, action, gameTag } = $model
-    if(!id){
-      return $helper.wrapResult(false, 'gameId为空！', -1)
+    const { game, player, action } = $model
+    if(!gameId){
+      throw new Error('gameId为空！')
     }
-    let gameInstance = await service.baseService.queryById(game, id)
+    let gameInstance = await service.baseService.queryById(game, gameId)
 
-    let needPk
-    let voteActions = await service.baseService.query(action, {roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, stage: stageNumber, action: $enums.SKILL_ACTION_KEY.VOTE})
+    let voteActions = await service.baseService.query(action, {roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, stage: currentStage, action: $enums.SKILL_ACTION_KEY.VOTE})
     let alivePlayers = await service.baseService.query(player,{gameId: gameInstance._id, roomId: gameInstance.roomId, status: $enums.PLAYER_STATUS.ALIVE},{}, {sort: { position: 1 }})
 
-    if(stageNumber === $enums.GAME_STAGE.VOTE_PK_STAGE && gameInstance.flatTicket === $enums.GAME_TICKET_FLAT.NEED_PK){
+    if(currentStage === $enums.GAME_STAGE.VOTE_PK_STAGE && gameInstance.flatTicket === $enums.GAME_TICKET_FLAT.NEED_PK){
       let pkPlayers = await service.tagService.getTodayPkPlayer(gameInstance)
       let leftPlayers = []
       alivePlayers.forEach(item=>{
@@ -278,7 +270,7 @@ class stageService extends BaseClass{
         await service.recordService.flatTicketRecord(gameInstance)
 
         // 需要pk的逻辑
-        if(gameInstance.flatTicket === $enums.GAME_TICKET_FLAT.NEED_PK && stageNumber === $enums.GAME_STAGE.VOTE_STAGE){
+        if(gameInstance.flatTicket === $enums.GAME_TICKET_FLAT.NEED_PK && currentStage === $enums.GAME_STAGE.VOTE_STAGE){
           // 平票加赛的处理
           let num = Math.floor(Math.random() * maxCount.length)
           let randomOrder = Math.floor(Math.random() * 2 ) + 1 // 1到2的随机数
@@ -286,32 +278,28 @@ class stageService extends BaseClass{
           await service.tagService.speakOrderTag(gameInstance, targetPlayer, randomOrder)
           await service.recordService.votePkRecord(gameInstance, targetPlayer, maxCount, randomOrder)
           await service.tagService.votePkTag(gameInstance, maxCount)
-          // 进入到6.5阶段（pk阶段）
-          needPk = 'Y'
           let gameStack = $support.getStageStack(gameInstance)
           gameStack.push($enums.GAME_STAGE.VOTE_PK_STAGE)
           await service.baseService.updateById(game, gameInstance._id, {stageStack: gameStack.getItems()})
         }
       }
     }
-
     await service.gameService.settleGameOver(gameInstance._id)
-    return $helper.wrapResult(true, needPk)
   }
 
   /**
    * 守卫阶段
-   * @param id
+   * @param gameId
    * @returns {Promise<{result}>}
    */
-  async guardStage (id) {
+  async guardStage (gameId) {
     const { service, app} = this
-    const { $helper, $model, $enums } = app
+    const { $model, $enums } = app
     const { game, player, action } = $model
-    if(!id){
-      return $helper.wrapResult(false, 'gameId为空！', -1)
+    if(!gameId){
+      throw new Error('gameId为空！')
     }
-    let gameInstance = await service.baseService.queryById(game, id)
+    let gameInstance = await service.baseService.queryById(game, gameId)
     // 查找当天晚上的守护动作
     let defendAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: $enums.GAME_STAGE.GUARD_STAGE, action: $enums.SKILL_ACTION_KEY.DEFEND})
     if(!defendAction) {
@@ -319,26 +307,24 @@ class stageService extends BaseClass{
       let guardPlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, role: $enums.GAME_ROLE.GUARD})
       await service.recordService.emptyActionRecord(gameInstance, guardPlayer)
     }
-    return $helper.wrapResult(true, '')
   }
 
   /**
    * 新的一轮
-   * @param id
+   * @param gameId
    * @returns {Promise<{result}>}
    */
-  async newRound (id) {
+  async newRound (gameId) {
     const { service, app } = this
-    const { $helper, $model, $constants } = app
+    const { $model, $constants } = app
     const { game } = $model
-    if(!id){
-      return $helper.wrapResult(false, 'gameId为空！', -1)
+    if(!gameId){
+      throw new Error('gameId为空！')
     }
-    let gameInstance = await service.baseService.queryById(game, id)
+    let gameInstance = await service.baseService.queryById(game, gameId)
     let gameConfig = $constants.MODE[gameInstance.mode]
     let newStack = [].concat(gameConfig.STAGE).reverse()
     await service.baseService.updateById(game, gameInstance._id, {stageStack: newStack, day: gameInstance.day + 1})
-    return $helper.wrapResult(true, '')
   }
 }
 module.exports = stageService;

@@ -26,12 +26,7 @@ class gameController extends BaseClass {
     }
 
     let seatPlayerInfo = await service.roomService.getRoomSeatPlayer(id)
-    if(!seatPlayerInfo.result){
-      // todo: errorcode 归口 ，怎么接入trycatch
-      ctx.body = $helper.Result.fail(seatPlayerInfo.errorCode, seatPlayerInfo.errorMessage)
-      return
-    }
-    if(!seatPlayerInfo.data.isFull){
+    if(!seatPlayerInfo.isFull){
       ctx.body = $helper.Result.fail(-1,'座位未坐满，不满足游戏开始条件！')
       return
     }
@@ -107,7 +102,7 @@ class gameController extends BaseClass {
     const { service, ctx, app } = this
     const { $helper, $model, $constants, $support } = app
     const { game, player, room } = $model
-    const { PLAYER_ROLE_MAP, STAGE_MAP } = $constants
+    const { STAGE_MAP } = $constants
     const { id } = ctx.query
     if(!id || id === ''){
       ctx.body = $helper.Result.fail(-1,'gameId不能为空！')
@@ -129,39 +124,20 @@ class gameController extends BaseClass {
     }
 
     // 获取当前角色拥有的各个玩家的游戏信息
-    let playerInfoResult = await service.gameService.getPlayerInfoInGame(gameInstance._id)
-    if(!playerInfoResult.result){
-      ctx.body = $helper.Result.fail(playerInfoResult.errorCode, playerInfoResult.errorMessage)
-      return
-    }
+    let playerInfo = await service.gameService.getPlayerInfoInGame(gameInstance._id)
 
     // 获取当前玩家的技能状态
     let skillInfo = await service.gameService.getSkillStatusInGame(gameInstance._id)
-    if(!skillInfo.result){
-      ctx.body = $helper.Result.fail(skillInfo.errorCode, skillInfo.errorMessage)
-      return
-    }
 
     // 获取游戏公共信息
     let broadcastInfo = await service.gameService.getBroadcastInfo(gameInstance._id)
-    if(!broadcastInfo.result){
-      ctx.body = $helper.Result.fail(broadcastInfo.errorCode, broadcastInfo.errorMessage)
-      return
-    }
 
     // 获取玩家的系统提示信息
     let systemTipsInfo = await service.gameService.getSystemTips(gameInstance._id)
-    if(!systemTipsInfo.result){
-      ctx.body = $helper.Result.fail(systemTipsInfo.errorCode, systemTipsInfo.errorMessage)
-      return
-    }
 
     // 获取玩家的非角色技能状态（如投票）
     let actionInfo = await service.gameService.getActionStatusInGame(gameInstance._id)
-    if(!actionInfo.result){
-      ctx.body = $helper.Result.fail(actionInfo.errorCode, actionInfo.errorMessage)
-      return
-    }
+
     let gameInfo = {
       _id: gameInstance._id,
       roomId: gameInstance.roomId,
@@ -172,7 +148,7 @@ class gameController extends BaseClass {
       dayTag: $support.getDayAndNightString(gameInstance.stage, true),
       roleInfo: isOb ? {} : {
         role: currentPlayer.role,
-        roleName: (PLAYER_ROLE_MAP[currentPlayer.role] ? PLAYER_ROLE_MAP[currentPlayer.role].name : ''),
+        roleName: $support.getRoleName(currentPlayer.role),
         skill: currentPlayer.skill,
         username: currentPlayer.username,
         name: currentUser.name,
@@ -180,11 +156,11 @@ class gameController extends BaseClass {
         status: currentPlayer.status,
         camp: currentPlayer.camp
       },
-      playerInfo: playerInfoResult.data, // 其他玩家的信息
-      skill: skillInfo.data,
-      broadcast: broadcastInfo.data,
-      systemTip: systemTipsInfo.data,
-      action: actionInfo.data,
+      playerInfo: playerInfo, // 其他玩家的信息
+      skill: skillInfo,
+      broadcast: broadcastInfo,
+      systemTip: systemTipsInfo,
+      action: actionInfo,
       winner: gameInstance.winner,
       isOb: isOb
     }
@@ -275,12 +251,7 @@ class gameController extends BaseClass {
       clearInterval(app.$timer[gameInstance._id])
     }
     await $helper.wait(200)
-
-    let r = await service.gameService.moveToNextStage(gameId)
-    if(!r.result){
-      ctx.body = $helper.Result.fail(r.errorCode, r.errorMessage)
-      return
-    }
+    await service.gameService.moveToNextStage(gameId)
     ctx.body = $helper.Result.success('操作成功！')
   }
 
@@ -977,9 +948,9 @@ class gameController extends BaseClass {
     // 生成一次广播事件
     await service.recordService.deadRecord(gameInstance)
 
-    await service.baseService.updateById(player, currentPlayer._id,{status: 0, outReason: $enums.GAME_OUT_REASON.BOOM})
-    let gameResult = await service.gameService.settleGameOver(gameInstance._id)
-    if(gameResult.result && gameResult.data === 'N'){
+    await service.baseService.updateById(player, currentPlayer._id,{status: $enums.PLAYER_STATUS.DEAD, outReason: $enums.GAME_OUT_REASON.BOOM})
+    let isGameOver = await service.gameService.settleGameOver(gameInstance._id)
+    if(!isGameOver){
       // 游戏未结束，增加record
       await service.recordService.nightBeginRecord(gameInstance, gameInstance.day + 1)
       // 重置阶段

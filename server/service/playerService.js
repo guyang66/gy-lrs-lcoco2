@@ -9,17 +9,17 @@ class playerService extends BaseClass{
    */
   async modifyPlayerSkill (targetPlayer, skillKey, status) {
     const { service, app } = this
-    const { $helper, $model } = app
+    const { $model } = app
     const { player } = $model
 
     if(!targetPlayer || targetPlayer === ''){
-      return $helper.wrapResult(false, 'player为空！', -1)
+      throw new Error('player为空！')
     }
     if(!skillKey || skillKey === ''){
-      return $helper.wrapResult(false, 'skillKey为空！', -1)
+      throw new Error('skillKey为空！')
     }
     if(status === null || status === undefined || status === ''){
-      return $helper.wrapResult(false, 'status为空！', -1)
+      throw new Error('status为空！')
     }
 
     let skills = targetPlayer.skill
@@ -38,7 +38,6 @@ class playerService extends BaseClass{
     await service.baseService.updateById(player, targetPlayer._id, {
       skill: newSkillStatus
     })
-    return $helper.wrapResult(true, 'ok')
   }
 
 

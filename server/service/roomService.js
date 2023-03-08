@@ -3,14 +3,14 @@ const BaseClass = require('../base/BaseClass')
 class roomService extends BaseClass{
   /**
    * 查询在座位上的玩家
-   * @returns {Promise<void>}
+   * @returns {Promise<boolean>}
    */
   async findInSeatPlayer (roomId, username = '') {
     const { service, app } = this
-    const { $helper, $model } = app
+    const { $model } = app
     const { room } = $model
     if(!roomId){
-      return $helper.wrapResult(false, '房间id不存在！', -1)
+      throw new Error('房间id不存在！')
     }
     let q = {
       "$and":
@@ -32,31 +32,23 @@ class roomService extends BaseClass{
         ]
     }
     let r = await service.baseService.queryOne(room, q)
-    if(r){
-      return $helper.wrapResult(true, 'ok')
-    } else {
-      return $helper.wrapResult(false, '玩家未入座该房间', -1)
-    }
+    return !!r
   }
 
   /**
    * 获取座位上的玩家信息
    * @param roomId
-   * @param showPlayerInfo 是否显示玩家信息
-   * @returns {Promise<null|[]>}
+   * @param showPlayerInfo
+   * @returns {Promise<{statusString: (string), isFull: boolean, content: []}>}
    */
   async getRoomSeatPlayer (roomId, showPlayerInfo = false) {
     const { service, app} = this
-    const { $helper, $model } = app
-
+    const { $model } = app
     const { user, room } = $model
     if(!roomId){
-      return $helper.wrapResult(false, 'roomId为空！', -1)
+      throw new Error('房间id不存在！')
     }
     let roomInstance = await service.baseService.queryById(room, roomId)
-    if(!roomInstance){
-      return $helper.wrapResult(false, '房间不存在！', -1)
-    }
     let count = roomInstance.count
     let list = []
     for(let i = 0; i < count; i++){
@@ -88,13 +80,11 @@ class roomService extends BaseClass{
       }
     })
 
-    let result = {
+    return {
       content: list,
       isFull: isFull,
       statusString: isFull ? '未坐满' : '已坐满'
     }
-
-    return $helper.wrapResult(true, result)
   }
 
   /**
@@ -103,13 +93,13 @@ class roomService extends BaseClass{
    */
   async clearSeat (roomId, username) {
     const { service, app } = this
-    const { $helper, $model } = app
+    const { $model } = app
     const { room } = $model
     if(!roomId || roomId === ''){
-      return $helper.wrapResult(false, 'roomId为空！', -1)
+      throw new Error('房间id不存在！')
     }
     if(!username || username === ''){
-      return $helper.wrapResult(false, 'username为空！', -1)
+      throw new Error('username不存在！')
     }
 
     let roomInstance = await service.baseService.queryById(room, roomId)
@@ -121,7 +111,6 @@ class roomService extends BaseClass{
         await service.baseService.updateById(room, roomInstance._id, update)
       }
     }
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
@@ -131,10 +120,10 @@ class roomService extends BaseClass{
    */
   async getWaitPlayerList (roomInstance) {
     const { service, app} = this
-    const { $helper, $model } = app
+    const { $model } = app
     const { user } = $model
     if(!roomInstance){
-      return $helper.wrapResult(false, 'roomInstance为空！', -1)
+      throw new Error('roomInstance为空！')
     }
     let waitPlayerArray = []
     for(let i = 0; i < roomInstance.wait.length; i++){

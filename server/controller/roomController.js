@@ -37,7 +37,7 @@ class roomController extends BaseClass {
   async getRoomInfo () {
     const { service, ctx, app } = this
     const { $helper, $model, $support, $constants } = app
-    const { room, user } = $model
+    const { room } = $model
     const { id } = ctx.query
     if(!id || id === ''){
       ctx.body = $helper.Result.fail(-1,'房间id不能为空！')
@@ -58,18 +58,13 @@ class roomController extends BaseClass {
     let isSeat = await service.roomService.findInSeatPlayer(id, username)
 
     // 不是观战者，并且未入座，也不在等待区，则是无效玩家
-    if(!isOb && !isSeat.result && !$helper.hasElement(waitPlayer, username)){
+    if(!isOb && !isSeat && !$helper.hasElement(waitPlayer, username)){
       ctx.body = $helper.Result.fail(-1, '你不在该房间内，请先返回首页，重新加入房间！')
       return
     }
 
     let waitPlayerArray = await service.roomService.getWaitPlayerList(roomInstance)
-
     let seatPlayerInfo = await service.roomService.getRoomSeatPlayer(id)
-    if(!seatPlayerInfo.result){
-      ctx.body = $helper.Result.fail(seatPlayerInfo.errorCode, seatPlayerInfo.errorMessage)
-      return
-    }
 
     // 前端需要这些信息来渲染视图，不同的状态对应不同的前端显示
     let info = {
@@ -79,9 +74,9 @@ class roomController extends BaseClass {
       name: roomInstance.name, // 房间名称
       password: roomInstance.password, // 房间密码
       status: roomInstance.status, // 游戏状态
-      seat: seatPlayerInfo.data.content, // 座位信息
-      seatStatus: seatPlayerInfo.data.isFull, // 是否已坐满
-      seatStatusString: seatPlayerInfo.data.statusString,
+      seat: seatPlayerInfo.content, // 座位信息
+      seatStatus: seatPlayerInfo.isFull, // 是否已坐满
+      seatStatusString: seatPlayerInfo.statusString,
       gameId: roomInstance.gameId,
       mode: roomInstance.mode, // 板子
       modeName: $constants.MODE[roomInstance.mode] ? $constants.MODE[roomInstance.mode].name : '未知板子',
@@ -113,7 +108,7 @@ class roomController extends BaseClass {
 
     // 查看当前用户是否在座位上
     let isSeat = await service.roomService.findInSeatPlayer(roomInstance._id, currentUser.username)
-    if(isSeat.result) {
+    if(isSeat) {
       // 在座位上且游戏在进行中，则恢复游戏状态即可（即前端正常渲染）
       ctx.body = $helper.Result.success(roomInstance._id)
       return
@@ -296,7 +291,7 @@ class roomController extends BaseClass {
     // 判断是否已经入座
     let isSeat =  await service.roomService.findInSeatPlayer(id, currentUser.username)
     let waitPlayer = roomInstance.wait
-    if(!isSeat.result){
+    if(!isSeat){
       // 未入座，但是等待区也没
       if(!$helper.hasElement(waitPlayer, currentUser.username)){
         ctx.body = $helper.Result.fail(-1,'您不在等待区，请退出房间，重新加入该房间！')

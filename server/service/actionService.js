@@ -11,10 +11,10 @@ class actionService extends BaseClass{
    */
   async saveAction ( gameInstance, actionKey, fromUsername, toUsername) {
     const { service, app } = this
-    const { $helper, $model } = app
+    const { $model } = app
     const { action } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空！')
     }
     let actionResult = {
       roomId: gameInstance.roomId,
@@ -26,7 +26,6 @@ class actionService extends BaseClass{
       action: actionKey
     }
     await service.baseService.save(action, actionResult)
-    return $helper.wrapResult(true, 'ok')
   }
 }
 module.exports = actionService;

@@ -9,12 +9,12 @@ class gameService extends BaseClass{
    */
   async createNewGame (roomInstance, setting) {
     const { service, app } = this
-    const { $model, $constants, $helper} = app
+    const { $model, $constants} = app
     const { game} = $model
     let gameConfig = $constants.MODE[roomInstance.mode]
     let stack = [].concat(gameConfig.STAGE).reverse()
     if(!roomInstance){
-      return $helper.wrapResult(false, 'roomInstance为空！', -1)
+      throw new Error('roomInstance为空！')
     }
     const getGameSettingValue = (v1, v2) => {
       if(!v1 && !v2){
@@ -54,19 +54,19 @@ class gameService extends BaseClass{
    * 获取可见的玩家信息
    * @returns {Promise<{result}>}
    */
-  async getPlayerInfoInGame (id) {
+  async getPlayerInfoInGame (gameId) {
     const { service, app } = this
-    const { $helper, $model, $constants, $support, $enums } = app
+    const { $model, $constants, $support, $enums } = app
     const { game, player, user, vision, room, action } = $model
     const { PLAYER_ROLE_MAP } = $constants
-    if(!id){
-      return $helper.wrapResult(false, 'gameId为空！', -1)
+    if(!gameId){
+      throw new Error('gameId为空！')
     }
-    let gameInstance = await service.baseService.queryById(game, id)
+    let gameInstance = await service.baseService.queryById(game, gameId)
     let currentUser = await service.baseService.userInfo()
     let roomInstance = await service.baseService.queryById(room, gameInstance.roomId)
     let isOb = $support.isOb(roomInstance, currentUser.username)
-    let playerCount = gameInstance.playerCount || 9
+    let playerCount = gameInstance.playerCount
     let playerInfo = []
     let pkPlayer = await service.tagService.getTodayPkPlayer(gameInstance)
     let currentPlayer = await service.baseService.queryOne(player, {roomId: gameInstance.roomId, gameId: gameInstance._id, username: currentUser.username})
@@ -87,7 +87,7 @@ class gameService extends BaseClass{
     for(let i = 0; i < playerCount; i++) {
       let un = gameInstance['v' + (i + 1)]
       // 查询其他玩家信息
-      let otherPlayer = await service.baseService.queryOne(player, {username: un, gameId: id, roomId: gameInstance.roomId})
+      let otherPlayer = await service.baseService.queryOne(player, {username: un, gameId: gameId, roomId: gameInstance.roomId})
       if(gameInstance.status === $enums.GAME_STATUS.FINISHED || gameInstance.status === $enums.GAME_STATUS.EXCEPTION || isOb){
         // 如果游戏已经结束，则获取完全视野（复盘）
         playerInfo.push({
@@ -121,28 +121,28 @@ class gameService extends BaseClass{
         isTarget: getTarget(otherPlayer.username) // 是否可以被触发动作（比如投票不是pk台上的玩家不能被投票，比如守卫第二晚不能守护同一个人）
       })
     }
-    return $helper.wrapResult(true, playerInfo)
+    return playerInfo
   }
 
   /**
    * 获取当前玩家在游戏中的技能状态
    * @returns {Promise<{result}>}
    */
-  async getSkillStatusInGame (id) {
+  async getSkillStatusInGame (gameId) {
     const { service, app } = this
-    const { $helper, $support, $model, $enums } = app
+    const { $support, $model, $enums } = app
     const { game, player, action, room } = $model
-    if(!id){
-      return $helper.wrapResult(false, 'gameId为空！', -1)
+    if(!gameId){
+      throw new Error('gameId为空！')
     }
-    let gameInstance = await service.baseService.queryById(game, id)
+    let gameInstance = await service.baseService.queryById(game, gameId)
     let currentUser = await service.baseService.userInfo()
     let roomInstance = await service.baseService.queryById(room, gameInstance.roomId)
     let isOb = $support.isOb(roomInstance, currentUser.username)
 
     let currentPlayer = await service.baseService.queryOne(player, {roomId: gameInstance.roomId, gameId: gameInstance._id, username: currentUser.username})
     if(isOb || !currentPlayer.skill || currentPlayer.skill.length < 1){
-      return $helper.wrapResult(true, [])
+      return []
     }
     let skillList = currentPlayer.skill
     // 查询一下当天有没有救人或者毒人，只要有2之一，女巫当晚不能再使用技能
@@ -186,7 +186,7 @@ class gameService extends BaseClass{
       return stage !== $enums.GAME_STAGE.EXILE_FINISH_STAGE;
     }
 
-    let tmp = []
+    let skillInfoList = []
     skillList.forEach(skill=>{
       let isSkillAvailable = skill.status === $enums.SKILL_STATUS.AVAILABLE
       let skillMap = {
@@ -197,92 +197,92 @@ class gameService extends BaseClass{
         case $enums.SKILL_ACTION_KEY.BOOM:
           skillMap.canUse = gameInstance.stage === $enums.GAME_STAGE.SPEAK_STAGE && isPlayerAlive // 是否可用
           skillMap.show = gameInstance.stage === $enums.GAME_STAGE.SPEAK_STAGE && isPlayerAlive
-          tmp.push(skillMap)
+          skillInfoList.push(skillMap)
           break;
         case $enums.SKILL_ACTION_KEY.ASSAULT:
           skillMap.canUse = getSkillUseStatus(skill, $enums.GAME_STAGE.WOLF_STAGE, assaultAction) // 是否可用
           skillMap.show = gameInstance.stage === $enums.GAME_STAGE.WOLF_STAGE && isPlayerAlive && isSkillAvailable
-          tmp.push(skillMap)
+          skillInfoList.push(skillMap)
           break;
         case $enums.SKILL_ACTION_KEY.CHECK:
           skillMap.canUse = getSkillUseStatus(skill,$enums.GAME_STAGE.PREDICTOR_STAGE, checkAction) // 是否可用
           skillMap.show = gameInstance.stage === $enums.GAME_STAGE.PREDICTOR_STAGE && isPlayerAlive && isSkillAvailable
-          tmp.push(skillMap)
+          skillInfoList.push(skillMap)
           break;
         case $enums.SKILL_ACTION_KEY.DEFEND:
           skillMap.canUse = getSkillUseStatus(skill,$enums.GAME_STAGE.GUARD_STAGE, defendAction) // 是否可用
           skillMap.show = gameInstance.stage === $enums.GAME_STAGE.GUARD_STAGE && isPlayerAlive && isSkillAvailable
-          tmp.push(skillMap)
+          skillInfoList.push(skillMap)
           break;
         case $enums.SKILL_ACTION_KEY.ANTIDOTE:
           skillMap.canUse = getSkillUseStatus(skill,$enums.GAME_STAGE.WITCH_STAGE, (saveAction || poisonAction)) && getWitchAntidoteByGameSettings() // 是否可用
           skillMap.show = gameInstance.stage === $enums.GAME_STAGE.WITCH_STAGE && isPlayerAlive && isSkillAvailable
-          tmp.push(skillMap)
+          skillInfoList.push(skillMap)
           break;
         case $enums.SKILL_ACTION_KEY.POISON:
           skillMap.canUse = getSkillUseStatus(skill, $enums.GAME_STAGE.WITCH_STAGE, (saveAction || poisonAction))
           skillMap.show = gameInstance.stage === $enums.GAME_STAGE.WITCH_STAGE && isPlayerAlive && isSkillAvailable
-          tmp.push(skillMap)
+          skillInfoList.push(skillMap)
           break;
         case $enums.SKILL_ACTION_KEY.SHOOT:
           skillMap.canUse = computeHunterSkill(skill, gameInstance.stage)
           skillMap.show = (gameInstance.stage === $enums.GAME_STAGE.AFTER_NIGHT || gameInstance.stage === $enums.GAME_STAGE.EXILE_FINISH_STAGE) && isSkillAvailable
-          tmp.push(skillMap)
+          skillInfoList.push(skillMap)
           break;
         default:
       }
     })
-    return $helper.wrapResult(true, tmp)
+    return skillInfoList
   }
 
   /**
    * 获取游戏公告信息
    * @returns {Promise<{result}>}
    */
-  async getBroadcastInfo(id) {
+  async getBroadcastInfo(gameId) {
     const { service, app } = this
-    const { $helper, $model, $constants, $enums } = app
+    const { $model, $constants, $enums } = app
     const { game, gameTag } = $model
     const { BROADCAST_MAP } = $constants
-    if(!id){
-      return $helper.wrapResult(false, 'gameId为空！', -1)
+    if(!gameId){
+      throw new Error('gameId为空！')
     }
-    let gameInstance = await service.baseService.queryById(game, id)
+    let gameInstance = await service.baseService.queryById(game, gameId)
     if(gameInstance.status === $enums.GAME_STATUS.FINISHED){
       let info = []
       info.push({text: '游戏结束！', level: $enums.TEXT_COLOR.BLACK})
       info.push({text: gameInstance.winnerstring, level: gameInstance.winner === $enums.GAME_CAMP.WOLF ? $enums.TEXT_COLOR.RED : $enums.TEXT_COLOR.GREEN})
       info.push({text: '胜利！', level: $enums.TEXT_COLOR.BLACK})
-      return $helper.wrapResult(true, info)
+      return info
     }
     if(gameInstance.status === $enums.GAME_STATUS.EXCEPTION){
       let info = []
       info.push({text: '房主结束了该场游戏，游戏已', level: $enums.TEXT_COLOR.BLACK})
       info.push({text: '结束！', level: $enums.TEXT_COLOR.RED})
-      return $helper.wrapResult(true, info)
+      return info
     }
     if(gameInstance.stage === $enums.GAME_STAGE.READY && gameInstance.day === $enums.GAME_DAY_ORDER.FIRST_DAY) {
-      return $helper.wrapResult(true, BROADCAST_MAP['ready'])
+      return BROADCAST_MAP['ready']
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.READY) {
-      return $helper.wrapResult(true, BROADCAST_MAP['night_begin'])
+      return BROADCAST_MAP['night_begin']
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.PREDICTOR_STAGE) {
-      return $helper.wrapResult(true, BROADCAST_MAP['predictor_action'])
+      return BROADCAST_MAP['predictor_action']
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.WOLF_STAGE){
-      return $helper.wrapResult(true, BROADCAST_MAP['wolf_action'])
+      return BROADCAST_MAP['wolf_action']
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.GUARD_STAGE){
-      return $helper.wrapResult(true, BROADCAST_MAP['guard_action'])
+      return BROADCAST_MAP['guard_action']
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.WITCH_STAGE){
-      return $helper.wrapResult(true, BROADCAST_MAP['witch_action'])
+      return BROADCAST_MAP['witch_action']
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.AFTER_NIGHT){
@@ -297,7 +297,7 @@ class gameService extends BaseClass{
         let info = []
         info.push({text: '昨天晚上是', level: $enums.TEXT_COLOR.BLACK})
         info.push({text: '平安夜', level: $enums.TEXT_COLOR.GREEN})
-        return $helper.wrapResult(true, info)
+        return info
       } else {
         let dieString = ''
         let dieMap = {} // 去重，去掉狼人和女巫杀同一个人
@@ -323,7 +323,7 @@ class gameService extends BaseClass{
           info.push({text: '，没有', level: $enums.TEXT_COLOR.BLACK})
           info.push({text: '遗言', level: $enums.TEXT_COLOR.RED})
         }
-        return $helper.wrapResult(true, info)
+        return info
       }
     }
 
@@ -337,7 +337,7 @@ class gameService extends BaseClass{
         info.push({text: '' + pkOrder.position + '号玩家（' + pkOrder.name + '）', level:$enums.TEXT_COLOR.RED})
         info.push({text:'先开始发言，顺序为：', level: $enums.TEXT_COLOR.BLACK})
         info.push({text:pkOrder.value === 'asc' ? '正向' : '逆向', level: $enums.TEXT_COLOR.RED})
-        return $helper.wrapResult(true, info)
+        return info
       }
       let order = await service.baseService.queryOne(gameTag,{roomId: gameInstance.roomId, gameId: gameInstance._id, day: gameInstance.day, desc: 'speakOrder', mode: $enums.GAME_TAG_MODE.SPEAK_ORDER})
       let info = []
@@ -345,14 +345,14 @@ class gameService extends BaseClass{
       info.push({text: '' + order.position + '号玩家（' + order.name + '）', level:$enums.TEXT_COLOR.RED})
       info.push({text:'开始发言，顺序为：', level: $enums.TEXT_COLOR.BLACK})
       info.push({text:order.value === 'asc' ? '正向' : '逆向', level: $enums.TEXT_COLOR.RED})
-      return $helper.wrapResult(true, info)
+      return info
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.VOTE_STAGE){
-      return $helper.wrapResult(true, BROADCAST_MAP['vote'])
+      return BROADCAST_MAP['vote']
     }
     if(gameInstance.stage === $enums.GAME_STAGE.VOTE_PK_STAGE){
-      return $helper.wrapResult(true, BROADCAST_MAP['vote_pk'])
+      return BROADCAST_MAP['vote_pk']
     }
 
     if(gameInstance.stage === $enums.GAME_STAGE.EXILE_FINISH_STAGE){
@@ -366,7 +366,7 @@ class gameService extends BaseClass{
       if(!voteDieTag){
         let info = []
         info.push({text:'平票，今天没有玩家出局，没有遗言', level: $enums.TEXT_COLOR.BLACK})
-        return $helper.wrapResult(true, info)
+        return info
       } else {
         let info = []
         info.push({text:'' + voteDieTag.position + '号玩家（' + voteDieTag.name + '）', level: $enums.TEXT_COLOR.RED})
@@ -374,19 +374,19 @@ class gameService extends BaseClass{
         info.push({text:'出局', level: $enums.TEXT_COLOR.RED})
         info.push({text:'，等待玩家发动技能', level: $enums.TEXT_COLOR.BLACK})
         info.push({text:'，等待玩家发表遗言。', level: $enums.TEXT_COLOR.BLACK})
-        return $helper.wrapResult(true, info)
+        return info
       }
     }
-    return $helper.wrapResult(true, [])
+    return []
   }
 
   /**
    * 获取每个玩家独有的系统提示(小贴士)
    * @returns {Promise<{result}>}
    */
-  async getSystemTips  (id) {
+  async getSystemTips  (gameId) {
     const { service, app } = this
-    const { $helper, $model, $support, $enums } = app
+    const { $model, $support, $enums } = app
     const { game, player, action, room } = $model
 
     const isBeforeVoteStage = (stage) => {
@@ -395,15 +395,15 @@ class gameService extends BaseClass{
         || stage === $enums.GAME_STAGE.WITCH_STAGE
         || stage === $enums.GAME_STAGE.AFTER_NIGHT
     }
-    if(!id){
-      return $helper.wrapResult(false, 'gameId为空！', -1)
+    if(!gameId){
+      throw new Error('gameId为空！')
     }
-    let gameInstance = await service.baseService.queryById(game, id)
+    let gameInstance = await service.baseService.queryById(game, gameId)
     let currentUser = await service.baseService.userInfo()
     let roomInstance = await service.baseService.queryById(room, gameInstance.roomId)
     let isOb = $support.isOb(roomInstance, currentUser.username)
     if(isOb){
-      return $helper.wrapResult(true, [])
+      return []
     }
 
     let currentPlayer = await service.baseService.queryOne(player, {roomId: gameInstance.roomId, gameId: gameInstance._id, username: currentUser.username})
@@ -412,20 +412,20 @@ class gameService extends BaseClass{
       info.push({text: '游戏结束！', level: $enums.TEXT_COLOR.BLACK})
       info.push({text: gameInstance.winnerString, level: gameInstance.winner === $enums.GAME_CAMP.WOLF ? $enums.TEXT_COLOR.RED : $enums.TEXT_COLOR.GREEN})
       info.push({text: '胜利！', level: $enums.TEXT_COLOR.BLACK})
-      return $helper.wrapResult(true, info)
+      return info
     }
     if(currentPlayer.role === 'predictor' && isBeforeVoteStage(gameInstance.stage)){
       // 允许在投票前显示预言家当晚的查验信息
       let checkAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: $enums.GAME_STAGE.PREDICTOR_STAGE, action: $enums.SKILL_ACTION_KEY.CHECK})
       if(!checkAction){
         if(gameInstance.stage === $enums.GAME_STAGE.PREDICTOR_STAGE){
-          return $helper.wrapResult(true, [])
+          return []
         }
         let info = []
         info.push({text: '你', level: $enums.TEXT_COLOR.BLACK})
         info.push({text: '预言家', level: $enums.TEXT_COLOR.GREEN})
         info.push({text: '今晚没有查验玩家', level: $enums.TEXT_COLOR.BLACK})
-        return $helper.wrapResult(true, info)
+        return info
       }
       let checkUsername = checkAction.to
       let checkPlayer = await service.baseService.queryOne(player, {gameId: gameInstance._id, roomId: gameInstance.roomId, username: checkUsername})
@@ -436,7 +436,7 @@ class gameService extends BaseClass{
       info.push({text: $support.getPlayerFullName(checkPlayer), level: $enums.TEXT_COLOR.RED})
       info.push({text: '他的身份为', level: $enums.TEXT_COLOR.BLACK})
       info.push({text: $support.getCampByRole(checkPlayer.role, true), level: checkPlayer.camp === $enums.GAME_CAMP.WOLF ? $enums.TEXT_COLOR.RED : $enums.TEXT_COLOR.GREEN})
-      return $helper.wrapResult(true, info)
+      return info
     } else if (gameInstance.stage === $enums.GAME_STAGE.WOLF_STAGE && currentPlayer.role === 'wolf'){
       let assaultAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId,day: gameInstance.day, stage: $enums.GAME_STAGE.WOLF_STAGE, from: currentPlayer.username, action: $enums.SKILL_ACTION_KEY.ASSAULT})
       if(assaultAction && assaultAction.to){
@@ -444,11 +444,11 @@ class gameService extends BaseClass{
         let info = []
         info.push({text: '你今晚袭击了', level: $enums.TEXT_COLOR.BLACK})
         info.push({text: $support.getPlayerFullName(assaultPlayer), level: $enums.TEXT_COLOR.RED})
-        return $helper.wrapResult(true, info)
+        return info
       } else {
         let info = []
         info.push({text: '请确认您的同伴，并讨论要袭击的玩家', level: $enums.TEXT_COLOR.GREEN})
-        return $helper.wrapResult(true, info)
+        return info
       }
     } else if ((gameInstance.stage === $enums.GAME_STAGE.WITCH_STAGE || gameInstance.stage === $enums.GAME_STAGE.AFTER_NIGHT) && currentPlayer.role === 'wolf') {
       let killAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId,day: gameInstance.day, stage: $enums.GAME_STAGE.WOLF_STAGE, action: $enums.SKILL_ACTION_KEY.KILL})
@@ -457,7 +457,7 @@ class gameService extends BaseClass{
         info.push({text: '你们', level: $enums.TEXT_COLOR.BLACK})
         info.push({text: '狼人团队', level: $enums.TEXT_COLOR.RED})
         info.push({text: '晚上没有袭击玩家', level: $enums.TEXT_COLOR.BLACK})
-        return $helper.wrapResult(true, info)
+        return info
       }
       let killUsername = killAction.to
       let killPlayer = await service.baseService.queryOne(player, {gameId: gameInstance._id, roomId: gameInstance.roomId, username: killUsername})
@@ -466,7 +466,7 @@ class gameService extends BaseClass{
       info.push({text: '狼人团队', level: $enums.TEXT_COLOR.RED})
       info.push({text: '晚上袭击了', level: $enums.TEXT_COLOR.BLACK})
       info.push({text: $support.getPlayerFullName(killPlayer), level: $enums.TEXT_COLOR.GREEN})
-      return $helper.wrapResult(true, info)
+      return info
     } else if ((gameInstance.stage === $enums.GAME_STAGE.WITCH_STAGE) && currentPlayer.role === 'witch') {
 
       let currentSkills = currentPlayer.skill
@@ -479,7 +479,7 @@ class gameService extends BaseClass{
       if(!killAction && antidoteSkill && antidoteSkill.status === $enums.SKILL_STATUS.AVAILABLE && currentPlayer.status === $enums.PLAYER_STATUS.ALIVE){
         info.push({text: '今晚没有玩家', level: $enums.TEXT_COLOR.BLACK})
         info.push({text: '被袭击', level: $enums.TEXT_COLOR.RED})
-        return $helper.wrapResult(true, info)
+        return info
       }
       if(killAction && antidoteSkill && antidoteSkill.status === $enums.SKILL_STATUS.AVAILABLE && currentPlayer.status === $enums.PLAYER_STATUS.ALIVE){
         let dieUsername = killAction.to
@@ -524,7 +524,7 @@ class gameService extends BaseClass{
         info.push({text: '你使用了毒药毒死了', level: $enums.TEXT_COLOR.BLACK})
         info.push({text: $support.getPlayerFullName(poisonPlayer) , level: $enums.TEXT_COLOR.RED})
       }
-      return $helper.wrapResult(true, info)
+      return info
     } else if (gameInstance.stage === $enums.GAME_STAGE.AFTER_NIGHT && currentPlayer.role === 'hunter') {
       if(currentPlayer.status === $enums.PLAYER_STATUS.DEAD){
         let info = []
@@ -545,7 +545,7 @@ class gameService extends BaseClass{
           info.push({text: '毒药毒死', level: $enums.TEXT_COLOR.RED})
           info.push({text: '无法发动技能', level: $enums.TEXT_COLOR.BLACK})
         }
-        return $helper.wrapResult(true, info)
+        return info
       }
     } else if (gameInstance.stage === $enums.GAME_STAGE.VOTE_STAGE){
       let voteAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId,day: gameInstance.day, stage: $enums.GAME_STAGE.VOTE_STAGE, from: currentPlayer.username, action: $enums.SKILL_ACTION_KEY.VOTE})
@@ -554,9 +554,9 @@ class gameService extends BaseClass{
         let info = []
         info.push({text: '你今天投票给', level: $enums.TEXT_COLOR.BLACK})
         info.push({text: $support.getPlayerFullName(votePlayer), level: $enums.TEXT_COLOR.RED})
-        return $helper.wrapResult(true, info)
+        return info
       }
-      return $helper.wrapResult(true, [])
+      return []
     }
     else if (gameInstance.stage === $enums.GAME_STAGE.VOTE_PK_STAGE){
       let voteAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId,day: gameInstance.day, stage: $enums.GAME_STAGE.VOTE_PK_STAGE, from: currentPlayer.username, action: $enums.SKILL_ACTION_KEY.VOTE})
@@ -565,34 +565,35 @@ class gameService extends BaseClass{
         let info = []
         info.push({text: '你今天投票给', level: $enums.TEXT_COLOR.BLACK})
         info.push({text: $support.getPlayerFullName(votePlayer), level: $enums.TEXT_COLOR.RED})
-        return $helper.wrapResult(true, info)
+        return info
       }
-      return $helper.wrapResult(true, [])
+      return []
     }
-    return $helper.wrapResult(true, [])
+    return []
   }
 
   /**
    * 获取玩家在游戏中的动作状态
    * @returns {Promise<{result}>}
    */
-  async getActionStatusInGame (id) {
+  async getActionStatusInGame (gameId) {
     const { service, app } = this
-    const { $helper, $support, $model, $enums } = app
-    const { game, player, action, gameTag, room } = $model
-    if(!id){
-      return $helper.wrapResult(false, 'gameId为空！', -1)
+    const { $support, $model, $enums } = app
+    const { game, player, action, room } = $model
+    if(!gameId){
+      throw new Error('gameId为空！')
     }
-    let gameInstance = await service.baseService.queryById(game, id)
+    let gameInstance = await service.baseService.queryById(game, gameId)
     let currentUser = await service.baseService.userInfo()
     let roomInstance = await service.baseService.queryById(room, gameInstance.roomId)
     let isOb = $support.isOb(roomInstance, currentUser.username)
     if(isOb){
-      return $helper.wrapResult(true, [])
+      return []
     }
 
     let currentPlayer = await service.baseService.queryOne(player, {roomId: gameInstance.roomId, gameId: gameInstance._id, username: currentUser.username})
 
+    let actions = []
     if(gameInstance.stage === $enums.GAME_STAGE.VOTE_STAGE) {
       let useStatus = currentPlayer.status === $enums.PLAYER_STATUS.ALIVE
       let voteAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: $enums.GAME_STAGE.VOTE_STAGE, from: currentPlayer.username, action: $enums.SKILL_ACTION_KEY.VOTE})
@@ -600,7 +601,7 @@ class gameService extends BaseClass{
         // 您已经投过票了
         useStatus = false
       }
-      let actions = [
+      actions = [
         {
           key: $enums.SKILL_ACTION_KEY.VOTE,
           name: '投票',
@@ -608,7 +609,6 @@ class gameService extends BaseClass{
           show: currentPlayer.status === $enums.PLAYER_STATUS.ALIVE,
         }
       ]
-      return $helper.wrapResult(true, actions)
     } else if (gameInstance.stage === $enums.GAME_STAGE.VOTE_PK_STAGE) {
       let useStatus = currentPlayer.status === $enums.PLAYER_STATUS.ALIVE
       let voteAction = await service.baseService.queryOne(action,{gameId: gameInstance._id, roomId: gameInstance.roomId, day: gameInstance.day, stage: $enums.GAME_STAGE.VOTE_PK_STAGE, from: currentPlayer.username, action: $enums.SKILL_ACTION_KEY.VOTE})
@@ -622,7 +622,7 @@ class gameService extends BaseClass{
         // 你是pk中的玩家，不允许投票
         useStatus = false
       }
-      let actions = [
+      actions = [
         {
           key: $enums.SKILL_ACTION_KEY.VOTE,
           name: '投票',
@@ -630,35 +630,36 @@ class gameService extends BaseClass{
           show: currentPlayer.status === $enums.PLAYER_STATUS.ALIVE,
         }
       ]
-      return $helper.wrapResult(true, actions)
     }
-    return $helper.wrapResult(true, [])
+    return actions
   }
 
   /**
    * 获取游戏是否结束 优先判断好人阵营死亡情况，在夜晚狼人先刀，所以好人和狼人都死完情况下，优先狼人团队胜利
    * @returns {Promise<{result}>}
    */
-  async settleGameOver (id) {
+  async settleGameOver (gameId) {
     const { service, app } = this
-    const { $helper, $model, $enums } = app
+    const { $model, $enums } = app
 
     const { game, player } = $model
-    if(!id){
-      return $helper.wrapResult(false, 'gameId为空！', -1)
+    if(!gameId){
+      throw new Error('gameId为空！')
     }
-    let gameInstance = await service.baseService.queryById(game, id)
+    let gameInstance = await service.baseService.queryById(game, gameId)
 
     let goodAlive = await service.baseService.query(player,{gameId: gameInstance._id, roomId: gameInstance.roomId, camp: $enums.GAME_CAMP.CLERIC_AND_VILLAGER, status: $enums.PLAYER_STATUS.ALIVE})
     if(!goodAlive || goodAlive.length < 1){
       // 好人全死
-      return await service.gameService.setGameWin(id, $enums.GAME_CAMP.WOLF)
+      await service.gameService.setGameWin(gameInstance._id, $enums.GAME_CAMP.WOLF)
+      return true
     }
 
     let villagerAlive = await service.baseService.query(player,{gameId: gameInstance._id, roomId: gameInstance.roomId, role: $enums.GAME_ROLE.VILLAGER, status: $enums.PLAYER_STATUS.ALIVE})
     if((!villagerAlive || villagerAlive.length < 1) && gameInstance.winCondition === $enums.GAME_WIN_CONDITION.KILL_HALF_ROLE){
       // 屠边 - 村民 => 游戏结束，狼人胜利
-      return await service.gameService.setGameWin(id, $enums.GAME_CAMP.WOLF)
+      await service.gameService.setGameWin(gameInstance._id, $enums.GAME_CAMP.WOLF)
+      return true
     }
 
     let clericAlive = await service.baseService.query(player,{
@@ -670,44 +671,48 @@ class gameService extends BaseClass{
 
     if((!clericAlive || clericAlive.length < 1) && gameInstance.winCondition === $enums.GAME_WIN_CONDITION.KILL_HALF_ROLE){
       // 屠边 - 屠神 => 游戏结束，狼人胜利
-      return await service.gameService.setGameWin(id, $enums.GAME_CAMP.WOLF)
+      await service.gameService.setGameWin(gameInstance._id, $enums.GAME_CAMP.WOLF)
+      return true
     }
 
     let wolfAlive = await service.baseService.query(player,{gameId: gameInstance._id, roomId: gameInstance.roomId, role:  $enums.GAME_ROLE.WOLF, status: $enums.PLAYER_STATUS.ALIVE})
     if(!wolfAlive || wolfAlive.length < 1){
       // 狼人死完 => 游戏结束，好人胜利
-      return await service.gameService.setGameWin(id, $enums.GAME_CAMP.CLERIC_AND_VILLAGER)
+      await service.gameService.setGameWin(gameInstance._id, $enums.GAME_CAMP.CLERIC_AND_VILLAGER)
+      return true
     }
     // 游戏未结束
-    return $helper.wrapResult(true , 'N')
+    return false
   }
 
   /**
    * 游戏赢家
-   * @param id
+   * @param gameId
    * @param camp
    * @returns {Promise<{result}>}
    */
-  async setGameWin (id, camp) {
+  async setGameWin (gameId, camp) {
     const { service, app } = this
-    const { $helper, $model, $ws, $enums, $constants } = app
+    const { $helper, $model, $ws, $enums, $constants, $log4 } = app
     const { game } = $model
-    const {CAMP_MAP} = $constants
+    const { CAMP_MAP } = $constants
+    const { errorLogger } = $log4
 
-    if(!id){
-      return $helper.wrapResult(false, 'gameId为空！', -1)
+    if(!gameId){
+      throw new Error('gameId为空！')
     }
-    if(camp === null || camp === undefined){
-      return $helper.wrapResult(false, '游戏赢家为空！', -1)
+    if($helper.isEmpty(camp)){
+      throw new Error('胜利阵营为空！')
     }
 
     let campList = $helper.mapToArray(CAMP_MAP)
     let targetCamp = campList.find(item=>{return item.value === camp})
     if(!targetCamp){
-      return $helper.wrapResult(false, '无效的阵营参数！', -1)
+      errorLogger.error('【gameService】 - setGameWin: 未识别的阵营参数！')
+      return false
     }
 
-    let gameInstance = await service.baseService.queryById(game, id)
+    let gameInstance = await service.baseService.queryById(game, gameId)
     await service.baseService.updateById(game, gameInstance._id,{status: $enums.GAME_STATUS.FINISHED, winner: camp, winnerString: targetCamp.name})
     await service.recordService.gameWinRecord(gameInstance, camp)
     $ws.connections.forEach(function (conn) {
@@ -716,7 +721,7 @@ class gameService extends BaseClass{
         conn.sendText('gameOver')
       }
     })
-    return $helper.wrapResult(true , 'Y')
+    return true
   }
 
   /**
@@ -726,12 +731,12 @@ class gameService extends BaseClass{
    */
   async moveToNextStage (gameId) {
     const { service, app } = this
-    const { $helper, $model, $ws, $nodeCache, $enums } = app
+    const { $model, $ws, $nodeCache, $enums } = app
 
     const { game } = $model
 
     if(!gameId || gameId === ''){
-      return $helper.wrapResult(false, 'gameId为空！', -1)
+      throw new Error('gameId为空！')
     }
 
     let gameInstance = await service.baseService.queryById(game, gameId)
@@ -774,8 +779,7 @@ class gameService extends BaseClass{
     }
 
     // 刷新一下（上面可能有更新game的操作，比如push一个stage）
-    let result = await service.gameService.updateStackToNext(gameInstance._id)
-    let nextStage = result.data
+    let nextStage = await service.gameService.updateStackToNext(gameInstance._id)
 
     if(nextStage === $enums.GAME_STAGE.READY){
       await service.recordService.nightBeginRecord(gameInstance, gameInstance.day + 1)
@@ -819,7 +823,6 @@ class gameService extends BaseClass{
           conn.sendText(JSON.stringify(data))
         }
       })
-      return $helper.wrapResult(true,'Y')
     }
 
     $nodeCache.set('game-time-' + gameInstance._id, t)
@@ -843,28 +846,30 @@ class gameService extends BaseClass{
         })
       }
     },1000)
-    return $helper.wrapResult(true,'Y')
   }
 
   /**
    * 更新game阶段栈
-   * @returns {Promise<void>}
+   * @param gameId
+   * @param update
+   * @returns {Promise<*>}
    */
-  async updateStackToNext (id, update = {}) {
+  async updateStackToNext (gameId, update = {}) {
     const { service, app } = this
-    const { $helper, $model, $support } = app
+    const { $model, $support } = app
     const { game } = $model
-    if(!id){
-      return $helper.wrapResult(false, 'gameId为空！', -1)
+    if(!gameId){
+      throw new Error('gameId为空！')
     }
-    let gameInstance = await service.baseService.queryById(game, id)
+    let gameInstance = await service.baseService.queryById(game, gameId)
     let gameStack = $support.getStageStack(gameInstance)
     // 弹出下一阶段
     let nextStage = gameStack.pop()
     // 更新状态
     let needUpdate = {stage: nextStage, stageStack: gameStack.getItems(), ...update}
     await service.baseService.updateById(game, gameInstance._id, needUpdate)
-    return $helper.wrapResult(true, nextStage)
+    // 返回下一阶段
+    return nextStage
   }
 }
 module.exports = gameService;

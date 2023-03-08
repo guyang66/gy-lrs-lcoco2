@@ -87,6 +87,8 @@ A请求走到后面的中间件是获取的上下文是B的，这样就上下文
 ```
 npm run front
 ```
+<font color="orange">注：本地需要mongodb数据库，如果不想安装数据库，可直接使用服务器数据库，将config.json找那个的mongodb.prd配置复制到mongodb.local即可</font>
+
 ### 开发(环境)-后端
 ```
 npm run server

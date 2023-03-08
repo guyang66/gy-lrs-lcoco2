@@ -45,26 +45,6 @@ module.exports = app => ({
     }
   },
 
-  /**
-   *
-   * @param success
-   * @param msg
-   * @param code
-   * @returns {{result}}
-   */
-  wrapResult (success, msg, code) {
-    let obj = {
-      result: !!success,
-    }
-    if(success){
-      obj.data = msg
-    } else {
-      obj.errorMessage = errorCode[msg] ? errorCode[msg].message : msg
-      obj.errorCode = errorCode[msg] ? errorCode[msg].code :code
-    }
-    return obj
-  },
-
   isEmpty (obj) {
     return obj === null || obj === undefined || obj === ''
   },

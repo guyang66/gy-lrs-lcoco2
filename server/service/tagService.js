@@ -10,13 +10,13 @@ class tagService extends BaseClass{
    */
   async deadTag (gameInstance, diePlayer, dieDesc) {
     const { service, app } = this
-    const { $helper, $model, $enums, $support } = app
+    const { $model, $enums, $support } = app
     const { gameTag } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空!')
     }
     if(!diePlayer){
-      return $helper.wrapResult(false, 'diePlayer为空！', -1)
+      throw new Error('diePlayer为空!')
     }
     let tag = {
       roomId: gameInstance.roomId,
@@ -31,7 +31,6 @@ class tagService extends BaseClass{
       position: diePlayer.position
     }
     await service.baseService.save(gameTag, tag)
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
@@ -43,10 +42,10 @@ class tagService extends BaseClass{
    */
   async speakOrderTag (gameInstance, targetPlayer, randomOrder) {
     const { service, app } = this
-    const { $helper, $model, $enums, $support } = app
+    const { $model, $enums, $support } = app
     const { gameTag } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空!')
     }
     let tag = {
       roomId: gameInstance.roomId,
@@ -62,7 +61,6 @@ class tagService extends BaseClass{
       position: targetPlayer.position
     }
     await service.baseService.save(gameTag, tag)
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
@@ -73,10 +71,10 @@ class tagService extends BaseClass{
    */
   async votePkTag (gameInstance, maxCount) {
     const { service, app } = this
-    const { $helper, $model, $enums, $support } = app
+    const { $model, $enums, $support } = app
     const { gameTag } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空!')
     }
     let tag = {
       roomId: gameInstance.roomId,
@@ -90,7 +88,6 @@ class tagService extends BaseClass{
       target: 'pkPlayer',
     }
     await service.baseService.save(gameTag, tag)
-    return $helper.wrapResult(true, 'ok')
   }
 
   /**
@@ -100,10 +97,10 @@ class tagService extends BaseClass{
    */
   async getTodayPkPlayer (gameInstance) {
     const { service, app } = this
-    const { $helper, $model, $enums } = app
+    const { $model, $enums } = app
     const { gameTag } = $model
     if(!gameInstance || gameInstance === ''){
-      return $helper.wrapResult(false, 'gameInstance为空！', -1)
+      throw new Error('gameInstance为空!')
     }
     let pkTag = await service.baseService.queryOne(gameTag, {
       roomId: gameInstance.roomId,
@@ -111,7 +108,6 @@ class tagService extends BaseClass{
       day: gameInstance.day,
       mode: $enums.GAME_TAG_MODE.VOTE_PK
     })
-    // todo: service的return处理
     return pkTag ? pkTag.value2 : []
   }
 

@@ -33,7 +33,7 @@ class baseService extends BaseClass{
     try {
       return await model.findOne(params, projection, options)
     } catch (e){
-      errorLogger.error('【baseService】—— findOne：' + e.toString())
+      errorLogger.error('【baseService】—— queryOne：' + e.toString())
       console.log(e)
       return false
     }
@@ -141,7 +141,7 @@ class baseService extends BaseClass{
   /**
    * 批量更新
    * @param model
-   * @param id
+   * @param params
    * @param data
    * @returns {Promise<*|boolean>}
    */
@@ -200,7 +200,7 @@ class baseService extends BaseClass{
       await model.findByIdAndRemove(id)
       return true
     } catch (e){
-      errorLogger.error('【baseService】- delete' + e)
+      errorLogger.error('【baseService】- deleteById' + e.toString())
       console.log(e)
       return false
     }
@@ -212,13 +212,15 @@ class baseService extends BaseClass{
    */
   async userInfo () {
     const { service, ctx, app } = this
-    const { $helper } = app
+    const { $helper, $log4 } = app
+    const { errorLogger } = $log4
     const token = ctx.header.authorization
     let user;
     try {
       user = await $helper.decodeToken(token)
     } catch (e) {
-      $helper.Result.fail(-1,e)
+      errorLogger.error('【baseService】- userInfo' + e.toString())
+      $helper.Result.fail(-1,'用户信息不存在' + e.toString())
     }
     if(!user){
       $helper.Result.fail(-1, '用户信息不存在')
