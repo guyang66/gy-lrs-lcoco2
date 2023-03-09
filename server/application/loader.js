@@ -72,7 +72,6 @@ function initMongoModel(app){
   return model
 }
 
-
 // 初始化扩展
 function initExtend(app) {
   scanFilesByFolder('../extend',(filename, extendFn)=>{
@@ -82,8 +81,14 @@ function initExtend(app) {
 
 function initMongodb(app) {
   const { commonLogger, mongoDBLogger } = app.$log4
-  const utils = require('../extend/utils')
-  const { localStringify } = utils(app)
+  const localStringify = (object) => {
+    return JSON.stringify(object, function (k, v) {
+      if (v instanceof RegExp) {
+        return v.toString();
+      }
+      return v;
+    })
+  }
   const mongoose = require('mongoose').set('debug', function (collectionName, method, query, doc) {
     let str = collectionName + '.' + method + '(' + localStringify(query) + ',' + localStringify(doc) + ')'
     // 开启sql log
@@ -156,20 +161,19 @@ function initSchedule (app) {
 
 const initWs = function (app) {
   const ws = require("nodejs-websocket")
-  const server = ws.createServer(function (connection){
+  return ws.createServer(function (connection) {
     connection.on("text", function (str) {
-      console.log("Received "+str)
-      connection.sendText(str.toUpperCase()+"!!!")
+      console.log("Received " + str)
+      connection.sendText(str.toUpperCase() + "!!!")
     })
     connection.on("close", function (code, reason) {
       console.log("Connection closed")
-      console.log(code,reason)
+      console.log(code, reason)
     })
     connection.on("error", function (code, reason) {
-      console.log(code,reason)
+      console.log(code, reason)
     })
   }).listen(app.$config.ws.port)
-  return server
 }
 
 module.exports = {

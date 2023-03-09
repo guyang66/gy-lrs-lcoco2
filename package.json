@@ -45,7 +45,6 @@
     "node-cache": "^5.1.2",
     "node-schedule": "^2.1.0",
     "nodejs-websocket": "^1.7.2",
-    "nodemailer": "^6.5.0",
     "react-app-rewire-hot-loader": "^2.0.1",
     "react-app-rewired": "^2.1.5",
     "react-document-title": "^2.0.3",

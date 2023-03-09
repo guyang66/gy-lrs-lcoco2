@@ -11,8 +11,6 @@ run/
 .DS_Store
 *.sw*
 *.un~
-public/css
-public/javascripts
 *.tar.gz
 *.gz
 dist

@@ -217,7 +217,7 @@ class recordService extends BaseClass{
    */
   async gameWinRecord (gameInstance, camp) {
     const { service, app } = this
-    const { $model, $enums, $constants } = app
+    const { $model, $enums, $constants, $helper } = app
     const { record } = $model
     const {CAMP_MAP} = $constants
     if(!gameInstance || gameInstance === ''){
