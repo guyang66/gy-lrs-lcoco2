@@ -128,7 +128,7 @@ module.exports = {
   paths: function (paths, env){
     // 因为client才是前端root目录，需要重新设置下打包目录
     paths.appPath = path.join(__dirname, '/client')
-    paths.appBuild = path.join(__dirname, '/public')
+    paths.appBuild = path.join(__dirname, '/static')
     paths.appPublic = path.join(__dirname, '/client/public')
     paths.appHtml = path.join(__dirname, '/client/public/index.html')
     paths.appIndexJs = path.join(__dirname, '/client/src/index.js')

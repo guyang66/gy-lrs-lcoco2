@@ -73,6 +73,12 @@ const Index = (props) => {
       // 如果直接url进入的，就直接安排到最近的一场。
       getRentRoomInfo()
     }
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        // 刷新界面，重新链接
+        window.location.reload()
+      }
+    })
   },[])
 
   const getRentRoomInfo = () => {

@@ -14,4 +14,4 @@ run/
 *.tar.gz
 *.gz
 dist
-public
+static

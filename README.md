@@ -150,7 +150,7 @@ server {
          listen 6101;
          server_name  gy-lrs-lcoco;
          charset utf-8;
-         root /opt/workspace/gy-lrs-lcoco2/public/;
+         root /opt/workspace/gy-lrs-lcoco2/static/;
          location /{
          index  index.html index.htm;
          try_files $uri /index.html;

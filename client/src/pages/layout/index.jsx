@@ -19,11 +19,10 @@ const Main = (props) => {
   useEffect(()=>{
     // 获取配置信息和用户信息。
     appStore.getPageConfig()
-
   },[])
 
   return (
-    <Layout style={{minHeight: "100vh", width:'100%',maxWidth:'500px', position: 'relative'}}>
+    <Layout style={{minHeight: "100vh", width:'100%', maxWidth:'500px', position: 'relative'}}>
       <Layout>
         {
           loading ? (<FullLoading />) : (

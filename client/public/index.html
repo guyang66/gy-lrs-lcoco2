@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>狼人杀</title>
+    <link rel="icon" href="%PUBLIC_URL%/lang.svg" />
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1" />-->
+    <meta name="viewport" content="width=500px,user-scalable=no,viewport-fit=cover">
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content=""/>
+    <meta name="keywords" content=""/>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="%REACT_APP_RESORCE_PREFIX%/public/babel-polyfill/6.26.0/polyfill.min.js"></script>
+    <script src="%REACT_APP_RESORCE_PREFIX%/public/react/16.13.1/react.min.js"></script>
+    <script src="%REACT_APP_RESORCE_PREFIX%/public/react-dom/16.13.1/react-dom.min.js"></script>
+    <script src="%REACT_APP_RESORCE_PREFIX%/public/react-router/5.2.0/react-router.min.js"></script>
+    <script src="%REACT_APP_RESORCE_PREFIX%/public/react-router-dom/5.2.0/react-router-dom.min.js"></script>
+    <script src="%REACT_APP_RESORCE_PREFIX%/public/mobx/5.15.4/mobx.umd.min.js"></script>
+    <script src="%REACT_APP_RESORCE_PREFIX%/public/mobx-react-lite/2.0.6/mobxreactlite.umd.production.min.js"></script>
+    <script src="%REACT_APP_RESORCE_PREFIX%/public/mobx-react/6.2.2/mobxreact.umd.production.min.js"></script>
+    <script src="%REACT_APP_RESORCE_PREFIX%/public/moment/2.24.0/moment.min.js"></script>
+    <script src="%REACT_APP_RESORCE_PREFIX%/public/moment/2.24.0/zh-cn.js"></script>
+    <script src="%REACT_APP_RESORCE_PREFIX%/public/antd/4.16.0/antd.min.js"></script>
+    <script src="%REACT_APP_RESORCE_PREFIX%/public/lodash/4.17.11/lodash.min.js"></script>
+    <script>
+      window.addEventListener("onorientationchange" in window ? "orientationchange" : "resize", function() {
+        if (window.orientation === 180 || window.orientation === 0) {
+          // 竖屏， 手机端默认竖屏
+          document.querySelector('meta[name="viewport"]').setAttribute("content","width=500px,user-scalable=no,viewport-fit=cover")
+        }
+        if (window.orientation === 90 || window.orientation === -90 ){
+          // 横屏
+          document.querySelector('meta[name="viewport"]').setAttribute("content","width=device-width, initial-scale=1")
+        }
+      }, false);
+    </script>
+  </body>
+</html>
