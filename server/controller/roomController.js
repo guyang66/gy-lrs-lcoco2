@@ -55,7 +55,7 @@ class roomController extends BaseClass {
     let waitPlayer = roomInstance.wait
 
     // 判断当前用户是否已经入座
-    let isSeat = await service.roomService.findInSeatPlayer(id, username)
+    let isSeat = await service.roomService.isPlayerInSeat(id, username)
 
     // 不是观战者，并且未入座，也不在等待区，则是无效玩家
     if(!isOb && !isSeat && !$helper.hasElement(waitPlayer, username)){
@@ -107,7 +107,7 @@ class roomController extends BaseClass {
     let currentUser = await service.baseService.userInfo()
 
     // 查看当前用户是否在座位上
-    let isSeat = await service.roomService.findInSeatPlayer(roomInstance._id, currentUser.username)
+    let isSeat = await service.roomService.isPlayerInSeat(roomInstance._id, currentUser.username)
     if(isSeat) {
       // 在座位上且游戏在进行中，则恢复游戏状态即可（即前端正常渲染）
       ctx.body = $helper.Result.success(roomInstance._id)
@@ -289,7 +289,7 @@ class roomController extends BaseClass {
     }
 
     // 判断是否已经入座
-    let isSeat =  await service.roomService.findInSeatPlayer(id, currentUser.username)
+    let isSeat =  await service.roomService.isPlayerInSeat(id, currentUser.username)
     let waitPlayer = roomInstance.wait
     if(!isSeat){
       // 未入座，但是等待区也没
@@ -405,6 +405,17 @@ class roomController extends BaseClass {
       }
     })
     ctx.body = $helper.Result.success('ok')
+  }
+
+  /**
+   * 获取最近在的房间信息，自动进入
+   * @returns {Promise<void>}
+   */
+  async roomRecent () {
+    const { service, ctx, app } = this
+    const { $helper} = app
+    let roomInstance = await service.roomService.getRoomByUsername()
+    ctx.body = $helper.Result.success(roomInstance?._id)
   }
 }
 module.exports = roomController

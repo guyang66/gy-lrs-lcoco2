@@ -67,8 +67,22 @@ const Index = (props) => {
   }
 
   useEffect(()=>{
-    getRoomDetail()
+    if(roomId){
+      getRoomDetail()
+    } else {
+      // 如果直接url进入的，就直接安排到最近的一场。
+      getRentRoomInfo()
+    }
   },[])
+
+  const getRentRoomInfo = () => {
+    apiRoom.getRecentRoom().then(data=>{
+      if(data){
+        roomId = data
+        getRoomDetail()
+      }
+    })
+  }
 
   const getRoomDetail = (isBegin) => {
     apiRoom.getRoomInfo({id: roomId}).then(data=>{

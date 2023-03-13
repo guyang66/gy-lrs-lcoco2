@@ -5,7 +5,7 @@ class roomService extends BaseClass{
    * 查询在座位上的玩家
    * @returns {Promise<boolean>}
    */
-  async findInSeatPlayer (roomId, username = '') {
+  async isPlayerInSeat (roomId, username = '') {
     const { service, app } = this
     const { $model } = app
     const { room } = $model
@@ -137,6 +137,33 @@ class roomService extends BaseClass{
       }
     }
     return waitPlayerArray
+  }
+
+  /**
+   * 查询当前玩家所在的最近一个房间内
+   * @returns {Promise<*>}
+   */
+  async getRoomByUsername () {
+    const { service, app } = this
+    const { $model } = app
+    const { room } = $model
+    let currentUser = await service.baseService.userInfo()
+    let username = currentUser.username
+    let params = {
+      "$or": [
+        {"v1": username},
+        {"v2": username},
+        {"v3": username},
+        {"v4": username},
+        {"v5": username},
+        {"v6": username},
+        {"v7": username},
+        {"v8": username},
+        {"v9": username}
+      ]
+    }
+    // 按房间创建事件排序
+    return await service.baseService.queryOne(room, params, {}, {sort: {createTime: -1}})
   }
 
 }

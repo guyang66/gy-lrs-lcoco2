@@ -1157,6 +1157,30 @@ class gameController extends BaseClass {
       config: config.CONFIG_DEFAULT
     })
   }
+
+  /**
+   * 获取玩家所在的最近游戏
+   * @returns {Promise<void>}
+   */
+  async gameRecent () {
+    const { service, ctx, app } = this
+    const { $helper, $model, $constants } = app
+    const { room } = $model
+    let gameInstance = await service.gameService.getGameByUsername()
+    if(!gameInstance){
+      ctx.body = $helper.Result.success(null)
+    }
+    let roomInstance = await service.baseService.queryById(room, gameInstance.roomId)
+    let gameInfo = {
+      roomId: roomInstance._id,
+      roomName: roomInstance.name,
+      password: roomInstance.password,
+      mode: gameInstance.mode,
+      modeName: $constants.MODE[gameInstance.mode].name,
+      gameStatus: gameInstance.status,
+    }
+    ctx.body = $helper.Result.success(gameInfo)
+  }
 }
 
 module.exports = gameController

@@ -1,12 +1,12 @@
-import React, {useState} from "react";
+import React, {useState, useEffect} from "react";
 import "./index.styl";
 import {inject, observer} from "mobx-react";
 import {withRouter} from "react-router-dom";
 import apiUser from '@api/user'
 import apiRoom from '@api/room'
 import apiGame from '@api/game'
-
 import {Button, Modal, Input, Radio, message} from "antd";
+const { confirm } = Modal;
 import helper from '@helper'
 
 const Index = (props) => {
@@ -33,6 +33,57 @@ const Index = (props) => {
       value: 'player'
     }
   ]
+
+  useEffect(()=>{
+    // url首次访问监测一次是否在游戏中
+    checkInGame()
+  },[])
+
+  const checkInGame = () => {
+    let has = sessionStorage.getItem('prop-tag')
+    if(has){
+      return
+    }
+    const getTitleView = (data) => {
+      return (
+        <div className="FBV">
+          <div className="color-orange" style={{fontSize: '16px'}}>
+            系统检测到你在最近的一场游戏中
+          </div>
+          <div className="FBH mar-t5">
+            <div>房间名字：</div>
+            <div className="color-green">{data.roomName}</div>
+          </div>
+          <div className="FBH mar-t5">
+            <div>房间密码：</div>
+            <div className="color-green">{data.password}</div>
+          </div>
+          <div className="FBH mar-t5">
+            <div>房间板子：</div>
+            <div className="color-green">{data.modeName}</div>
+          </div>
+          <div className="mar-t5 color-red">
+            是否立即进入该场游戏？
+          </div>
+        </div>
+      )
+    }
+    apiGame.getRecentGame().then(data=>{
+      if(data){
+        confirm(
+          {
+            title: getTitleView(data),
+            okText: '立即进入',
+            cancelText: '取消',
+            onOk() {
+              history.push({pathname: '/room', state: {id: data.roomId}})
+            }
+          }
+        )
+      }
+    })
+    sessionStorage.setItem('prop-tag', 'ture')
+  }
 
   const createUser = () => {
     if(!newPlayer.username || newPlayer.username === ''){

@@ -5,10 +5,8 @@ class userController extends BaseClass {
    * @returns {Promise<void>}
    */
   async createUser() {
-    //todo: url权限要跟上,
     const { service, ctx, app } = this
     const { $helper, $model } = app
-
     const { user } = $model
     const { username, name, password, role } = ctx.request.body
     if(!username || username === ''){

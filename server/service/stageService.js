@@ -29,7 +29,7 @@ class stageService extends BaseClass{
    */
   async wolfStage(gameId) {
     const { service, app} = this
-    const { $helper, $model, $enums } = app
+    const { $support, $model, $enums } = app
     const { game, player, action } = $model
     if(!gameId){
       throw new Error('gameId为空！')
@@ -47,7 +47,7 @@ class stageService extends BaseClass{
       usernameList.push(item.to)
     })
     // 找到他们中被杀次数最多的
-    let targetUsername = $helper.findMaxInArray(usernameList)
+    let targetUsername = $support.findMaxInArray(usernameList)
     await service.actionService.saveAction(gameInstance, $enums.SKILL_ACTION_KEY.KILL, $enums.GAME_ROLE.WOLF, targetUsername)
 
     let diePlayer = await service.baseService.queryOne(player,{roomId: gameInstance.roomId, gameId: gameInstance._id, username: targetUsername})

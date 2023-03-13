@@ -72,6 +72,14 @@ export default {
       method: 'get',
       params,
     })
+  },
+
+  getRecentRoom (params) {
+    return fetch({
+      url: urlPrefix + 'room/recent/auth',
+      method: 'get',
+      params,
+    })
   }
 
 }

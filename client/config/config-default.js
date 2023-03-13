@@ -1,7 +1,6 @@
 module.exports = {
   proxy: [
     {
-      // api的接口全部转到6001的服务端去
       context: ['/api'],
       target: 'http://localhost:6100/api',
       changeOrigin: true,

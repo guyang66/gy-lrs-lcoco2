@@ -136,5 +136,13 @@ export default {
       method: 'get',
       params,
     })
+  },
+
+  getRecentGame (params) {
+    return fetch({
+      url: urlPrefix + 'game/recent/auth',
+      method: 'get',
+      params,
+    })
   }
 }

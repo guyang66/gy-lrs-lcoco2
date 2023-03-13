@@ -183,7 +183,7 @@ class gameService extends BaseClass{
         // 经过了晚上的洗礼，如果死亡
         return currentPlayer.outReason !== $enums.GAME_OUT_REASON.POISON
       }
-      return stage !== $enums.GAME_STAGE.EXILE_FINISH_STAGE;
+      return stage === $enums.GAME_STAGE.EXILE_FINISH_STAGE;
     }
 
     let skillInfoList = []
@@ -871,6 +871,38 @@ class gameService extends BaseClass{
     await service.baseService.updateById(game, gameInstance._id, needUpdate)
     // 返回下一阶段
     return nextStage
+  }
+
+  /**
+   * 查询最近所在的一场游戏
+   * @returns {Promise<*|boolean>}
+   */
+  async getGameByUsername () {
+    const { service, app } = this
+    const { $model, $enums } = app
+    const { game } = $model
+    let currentUser = await service.baseService.userInfo()
+    let username = currentUser.username
+    let params = {
+      "$and":
+        [
+          {status: $enums.GAME_STATUS.GOING},
+          {
+            "$or": [
+              {"v1": username},
+              {"v2": username},
+              {"v3": username},
+              {"v4": username},
+              {"v5": username},
+              {"v6": username},
+              {"v7": username},
+              {"v8": username},
+              {"v9": username}
+            ]
+          }
+        ]
+    }
+    return await service.baseService.queryOne(game, params, {}, {sort: {createTime: -1}})
   }
 }
 module.exports = gameService;

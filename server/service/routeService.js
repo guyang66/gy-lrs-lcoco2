@@ -61,7 +61,7 @@ class routeService extends BaseClass{
     let sortParam = {}
 
     let total = await route.find(searchParams).countDocuments()
-    list = await route.find(searchParams, null, {skip: pageSize * (page < 1 ? 0 : (page - 1)), limit: (pageSize - 0), sort : sortParam }, function (err, docs){
+    list = await route.find(searchParams, null, {skip: pageSize * (page < 1 ? 0 : (page - 1)), limit: ~~pageSize, sort : sortParam }, function (err, docs){
       if(err){
         errorLogger.error(err)
       }

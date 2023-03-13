@@ -45,59 +45,24 @@ module.exports = app => ({
     }
   },
 
+  /**
+   * 是否是空
+   * @param obj
+   * @returns {boolean}
+   */
   isEmpty (obj) {
     return obj === null || obj === undefined || obj === ''
   },
 
+  /**
+   * 是否是空对象
+   * @param obj
+   * @returns {boolean}
+   */
   isEmptyObject (obj) {
     return obj === {} || obj === null || obj === undefined || obj === ''
   },
 
-  formatDateYYMMDD (t) {
-    if(!t || t === ''){
-      t = new Date()
-    }
-    if(!(t instanceof Date)){
-      t = new Date(t)
-    }
-    let y = t.getFullYear()
-    let m = t.getMonth() + 1
-    let d = t.getDate()
-    return '' + y + '-' + (m < 10 ? ('0' + m) : m) + '-' + (d < 10 ? ('0' + d) : d)
-  },
-
-  formatDateHHMMSS (t) {
-    if(!t){
-      t = new Date()
-    }
-
-    if(!(t instanceof Date)){
-      t = new Date(t)
-    }
-    let h = t.getHours()
-    let m = t.getMinutes()
-    let s = t.getSeconds()
-    return (h < 10 ? ('0' + h) : h) + ':' + (m < 10 ? ('0' + m) : m ) + ':' + (s < 10 ? ('0' + s) : s)
-  },
-
-  /**
-   * 格式日期
-   * @param t
-   * @returns {string}
-   */
-  formatDate (t) {
-    if(!t){
-      t = new Date()
-    }
-
-    if(!(t instanceof Date)){
-      t = new Date(t)
-    }
-    let h = t.getHours()
-    let m = t.getMinutes()
-    let s = t.getSeconds()
-    return this.formatDateYYMMDD(t) + ' ' + (h < 10 ? ('0' + h) : h) + ':' + (m < 10 ? ('0' + m) : m ) + ':' + (s < 10 ? ('0' + s) : s)
-  },
   /**
    * 同步等待，延迟
    * @param ms
@@ -163,10 +128,15 @@ module.exports = app => ({
     return await jwt.decode(token)
   },
 
-  getRandomCode () {
+  /**
+   * 获取一组随机数
+   * @param l
+   * @returns {string}
+   */
+  getRandomCode (l = 6) {
     let codeSet = '0123456789'
     let str = '';
-    for (let i = 0; i < 6; i ++) {
+    for (let i = 0; i < l; i ++) {
       let ran = getRandom(0, 6);
       str += codeSet.charAt(ran);
     }
@@ -202,32 +172,6 @@ module.exports = app => ({
       }
     }
     return arr.sort(function (a,b){return a.number - b.number})
-  },
-
-  /**
-   * 找到数组中重复次数最多的元素
-   * @param array
-   * @returns {string}
-   */
-  findMaxInArray (array) {
-    let map = {}
-    array.forEach((item,index) => {
-      if(array.indexOf(item) === index){
-        map[item] = 1
-      }else{
-        map[item] = map[item] + 1
-      }
-    })
-
-    let max = 0
-    let target = array[0]
-    for(let key in map) {
-      if(map[key] > max){
-        max = map[key]
-        target = key
-      }
-    }
-    return target
   },
 
   /**

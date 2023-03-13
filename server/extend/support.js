@@ -29,6 +29,38 @@ module.exports = app => ({
     return '' + player.position + '号（' + (name ? name : player.name) + ')'
   },
 
+  /**
+   * 找到数组中重复次数最多的元素
+   * @param array
+   * @returns {string}
+   */
+  findMaxInArray (array) {
+    let map = {}
+    array.forEach((item,index) => {
+      if(array.indexOf(item) === index){
+        map[item] = 1
+      }else{
+        map[item] = map[item] + 1
+      }
+    })
+
+    let max = 0
+    let target = array[0]
+    for(let key in map) {
+      if(map[key] > max){
+        max = map[key]
+        target = key
+      }
+    }
+    return target
+  },
+
+  /**
+   * 获取视野key
+   * @param from
+   * @param to
+   * @returns {number}
+   */
   getVisionKey (from, to) {
     const { $enums } = app
     if(from.number === to.number){
