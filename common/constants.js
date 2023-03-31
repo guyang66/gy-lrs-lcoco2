@@ -50,9 +50,9 @@ module.exports = {
         ]
       },
       CONFIG_DEFAULT: {
-        predictorActionTime: 30,
-        wolfActionTime: 45,
-        witchActionTime: 30,
+        predictorActionTime: 10,
+        wolfActionTime: 10,
+        witchActionTime: 10,
         witchSaveSelf: enums.GAME_WITCH_SAVE_SELF.SAVE_ONLY_FIRST_NIGHT,
         winCondition: enums.GAME_WIN_CONDITION.KILL_HALF_ROLE,
         flatTicket: enums.GAME_TICKET_FLAT.NO_PK
@@ -98,9 +98,9 @@ module.exports = {
         ]
       },
       CONFIG_DEFAULT: {
-        predictorActionTime: 30,
-        wolfActionTime: 45,
-        guardActionTime: 30,
+        predictorActionTime: 10,
+        wolfActionTime: 10,
+        guardActionTime: 10,
         winCondition: enums.GAME_WIN_CONDITION.KILL_ALL,
         flatTicket: enums.GAME_TICKET_FLAT.NO_PK
       }

@@ -96,7 +96,7 @@ const Index = (props) => {
       if(data.status === 0){
         initSeat(data)
       } else if (data.status === 1) {
-        initGame(data.gameId, data._id, isBegin)
+        initGame({gameId: data.gameId, roomId: data._id, isBegin})
       }
     }).catch(error=>{
       console.log('获取房间信息失败！',error)
@@ -104,7 +104,8 @@ const Index = (props) => {
     })
   }
 
-  const initGame = (gameId, roomId, isBegin) => {
+  const initGame = (opt = {}) => {
+    const {gameId, roomId, isBegin = false, play = false} = opt
     if(!gameId){
       console.log('initGame失败：gameId不存在')
       message.warn('游戏id不存在！')
@@ -116,6 +117,15 @@ const Index = (props) => {
       setPlayerInfo(data.playerInfo || [])
       setSkillInfo(data.skill || [])
       setActionInfo(data.action || [])
+      if(play){
+        // 去播报
+        let bc = data.broadcast || []
+        let word = ''
+        bc.forEach(item=>{
+          word = word + item.text
+        })
+        utils.speechProp(word)
+      }
       if(isBegin){
         openRoleCard(data.roleInfo)
       }
@@ -284,7 +294,7 @@ const Index = (props) => {
     })
     setActionPlayer(tmp)
     // 刷新game
-    initGame(gameDetail._id, gameDetail.roomId)
+    initGame({gameId: gameDetail._id, roomId: gameDetail.roomId})
   }
 
   const openRoleCard = (roleInfo) => {
@@ -329,7 +339,7 @@ const Index = (props) => {
     setCurrentAction('')
     setActionResult(null)
     closeAllModel()
-    initGame(gameDetail._id, roomDetail._id)
+    initGame({gameId: gameDetail._id, roomId: roomDetail._id, play: true})
   }
 
   const restartGame = () => {
@@ -394,7 +404,7 @@ const Index = (props) => {
         resetRoomDetail()
         break
       case 'refreshGame':
-        initGame(gameDetail._id, roomDetail._id)
+        initGame({gameId: gameDetail._id, roomId: roomDetail._id})
         break
       case 'gameStart':
         getRoomDetail(true)

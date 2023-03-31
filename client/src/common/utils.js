@@ -99,6 +99,16 @@ const getWsUrl = () => {
   return config.websocket.dev
 }
 
+const speechProp = (text) => {
+  const msg = new SpeechSynthesisUtterance();
+  msg.text = text
+  msg.lang = 'zh_CN'
+  msg.volume = 50
+  msg.rate = 0.8
+  msg.pitch = 0
+  speechSynthesis.speak(msg)
+}
+
 export default  {
   getMenuIconByKey,
   getCurrentDate,
@@ -108,5 +118,6 @@ export default  {
   verifyPhoneFormat,
   getFixUrl,
   getDateString,
-  getWsUrl
+  getWsUrl,
+  speechProp
 }

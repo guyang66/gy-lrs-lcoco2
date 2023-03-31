@@ -293,8 +293,8 @@ class gameService extends BaseClass{
         mode: $enums.GAME_TAG_MODE.DIE
       }, {}, { sort: { position: 1}})
 
+      let info = [{text: '天亮了，', level: $enums.TEXT_COLOR.BLUE}]
       if(!diePlayer || diePlayer.length < 1){
-        let info = []
         info.push({text: '昨天晚上是', level: $enums.TEXT_COLOR.BLACK})
         info.push({text: '平安夜', level: $enums.TEXT_COLOR.GREEN})
         return info
@@ -311,7 +311,6 @@ class gameService extends BaseClass{
           }
           dieString = dieString + item.position + '号玩家（' + item.name + '）'
         })
-        let info = []
         info.push({text: '昨天晚上死亡的是：', level: $enums.TEXT_COLOR.BLACK})
         info.push({text: dieString, level: $enums.TEXT_COLOR.RED})
         info.push({text: '，等待死亡玩家发动技能', level: $enums.TEXT_COLOR.BLACK})

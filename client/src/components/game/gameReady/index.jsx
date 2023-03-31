@@ -108,10 +108,10 @@ const Ready = (props) => {
     let newValue
     switch (type) {
       case 'minus' :
-        newValue = (oldValue - 15 < 15 ? 15 : oldValue - 15)
+        newValue = (oldValue - 10 < 10 ? 10 : oldValue - 10)
         break
       case 'add' :
-        newValue = oldValue + 15
+        newValue = oldValue + 10
         break
       case 'radio-click' :
         newValue = value
